@@ -26,7 +26,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 beforeEach(() => {
   mockGet.mockReset();
   mockPost.mockReset();
-  global.resetSecureStore();
+  globalThis.resetSecureStore();
 });
 
 /** Monte le provider et attend la fin de la restauration de session. */

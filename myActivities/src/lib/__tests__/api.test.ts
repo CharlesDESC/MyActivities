@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { api, ApiError, STORAGE_KEYS, setUnauthenticatedCallback } from '@/lib/api';
 
 const mockFetch = jest.fn();
-global.fetch = mockFetch as unknown as typeof fetch;
+globalThis.fetch = mockFetch as unknown as typeof fetch;
 
 /** Réponse fetch minimale. */
 function jsonResponse(body: unknown, status = 200) {
@@ -16,7 +16,7 @@ function jsonResponse(body: unknown, status = 200) {
 
 beforeEach(() => {
   mockFetch.mockReset();
-  global.resetSecureStore();
+  globalThis.resetSecureStore();
   setUnauthenticatedCallback(() => {});
 });
 
