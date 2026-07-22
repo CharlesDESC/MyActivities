@@ -1,32 +1,46 @@
 import { StyleSheet } from 'react-native';
 
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Spacing, WebContentWidth, WebHeaderHeight } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
-  tabListContainer: {
-    position: 'absolute',
+  shell: { flex: 1 },
+  slot: { flex: 1 },
+
+  headerBar: {
     width: '100%',
-    padding: Spacing.three,
-    justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128,128,128,0.25)',
   },
-  innerContainer: {
-    paddingVertical: Spacing.two,
+  headerInner: {
+    width: '100%',
+    maxWidth: WebContentWidth,
+    height: WebHeaderHeight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
-    borderRadius: Spacing.five,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one,
-    maxWidth: MaxContentWidth,
+    gap: Spacing.three,
   },
+
+  brand: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  brandName: { fontWeight: '800' },
+  brandPill: {
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: '#208AEF',
+  },
+  brandPillText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
+
+  tabs: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   pressed: { opacity: 0.7 },
   tabButtonView: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.one,
-    paddingVertical: Spacing.one,
+    paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
+    borderRadius: 999,
   },
 });

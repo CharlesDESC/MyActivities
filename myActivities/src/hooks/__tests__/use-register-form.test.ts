@@ -42,7 +42,7 @@ describe('useRegisterForm — état initial', () => {
   it('starts empty, idle and unregistered', async () => {
     const { result } = await renderHook(() => useRegisterForm());
 
-    expect(result.current.values).toEqual({ email: '', pseudo: '', password: '', confirmPassword: '' });
+    expect(result.current.values).toEqual({ email: '', pseudo: '', password: '', confirmPassword: '', siret: '' });
     expect(result.current.errors).toEqual({});
     expect(result.current.isSubmitting).toBe(false);
     expect(result.current.registered).toBe(false);

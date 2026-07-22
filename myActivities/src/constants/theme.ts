@@ -63,3 +63,7 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+/** Largeur max du contenu sur la console web organisateur (plus large qu'en mobile). */
+export const WebContentWidth = 1040;
+/** Hauteur de la barre de navigation web (header organisateur). */
+export const WebHeaderHeight = 60;

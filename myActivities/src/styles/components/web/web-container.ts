@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Spacing, WebContentWidth } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   outer: {
@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
   inner: {
     flex: 1,
     width: '100%',
-    maxWidth: MaxContentWidth,
+    maxWidth: WebContentWidth,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.four,
   },

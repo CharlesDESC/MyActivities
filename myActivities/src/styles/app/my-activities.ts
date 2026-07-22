@@ -25,6 +25,8 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(128,128,128,0.2)',
   },
   emoji: { fontSize: 26 },
   rowBody: { flex: 1, gap: Spacing.half },
