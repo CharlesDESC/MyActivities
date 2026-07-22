@@ -63,7 +63,12 @@ router.post('/conversations/:conversationId', authenticate, async (req: Request,
 router.post('/', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { recipientId, content } = SendMessageSchema.parse(req.body);
-    const { message, recipientIds } = await messageService.sendMessage(req.user!.sub, recipientId, content);
+    const { message, recipientIds } = await messageService.sendMessage(
+      req.user!.sub,
+      req.user!.role,
+      recipientId,
+      content,
+    );
     await publishRealtime({ type: SOCKET_EVENTS.MESSAGE_NEW, recipients: recipientIds, payload: message });
     res.status(201).json(message);
   } catch (err) { next(err); }

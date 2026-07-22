@@ -61,7 +61,7 @@ describe('handleSend', () => {
 
     await handleSend(broker, user, { recipientId: RECIPIENT, content: 'Bonjour' }, ack);
 
-    expect(mock.sendMessage).toHaveBeenCalledWith('user-1', RECIPIENT, 'Bonjour');
+    expect(mock.sendMessage).toHaveBeenCalledWith('user-1', 'member', RECIPIENT, 'Bonjour');
     expect(broker.publish).toHaveBeenCalledWith(
       expect.objectContaining({ type: SOCKET_EVENTS.MESSAGE_NEW, recipients: ['user-1', RECIPIENT] }),
     );

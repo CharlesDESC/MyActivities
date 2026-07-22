@@ -89,7 +89,7 @@ describe('Socket.IO gateway (intégration)', () => {
     client.on('connect', () => {
       client.emit(SOCKET_EVENTS.MESSAGE_SEND, { recipientId: RECIPIENT, content: 'Bonjour' }, (ack: any) => {
         expect(ack.ok).toBe(true);
-        expect(mock.sendMessage).toHaveBeenCalledWith('user-1', RECIPIENT, 'Bonjour');
+        expect(mock.sendMessage).toHaveBeenCalledWith('user-1', 'member', RECIPIENT, 'Bonjour');
       });
     });
   });

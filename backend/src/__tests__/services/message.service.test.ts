@@ -29,7 +29,7 @@ function mockTxClient(queryResults: unknown[]) {
 
 describe('message.service — sendMessage (direct)', () => {
   it('throws 422 when messaging oneself', async () => {
-    await expect(messageService.sendMessage('user-1', 'user-1', 'hi')).rejects.toMatchObject({
+    await expect(messageService.sendMessage('user-1', 'member', 'user-1', 'hi')).rejects.toMatchObject({
       statusCode: 422,
       code: 'INVALID_RECIPIENT',
     });
@@ -38,7 +38,7 @@ describe('message.service — sendMessage (direct)', () => {
 
   it('throws 404 if recipient does not exist or is inactive', async () => {
     mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] }); // recipient check
-    await expect(messageService.sendMessage('user-1', 'user-2', 'hi')).rejects.toMatchObject({
+    await expect(messageService.sendMessage('user-1', 'member', 'user-2', 'hi')).rejects.toMatchObject({
       statusCode: 404,
       code: 'NOT_FOUND',
     });
@@ -49,13 +49,13 @@ describe('message.service — sendMessage (direct)', () => {
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'user-2', role: 'member' }] }) // recipient
       .mockResolvedValueOnce({ rows: [] })                                              // findDirect: none
       .mockResolvedValueOnce({ rowCount: 0, rows: [] });                                // areFriends: no
-    await expect(messageService.sendMessage('user-1', 'user-2', 'hi')).rejects.toMatchObject({
+    await expect(messageService.sendMessage('user-1', 'member', 'user-2', 'hi')).rejects.toMatchObject({
       statusCode: 403,
       code: 'NOT_FRIENDS',
     });
   });
 
-  it('allows messaging an organizer even without friendship (creates the conversation)', async () => {
+  it('allows a member to message an organizer without friendship', async () => {
     mockQuery
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'user-2', role: 'organizer' }] }) // recipient
       .mockResolvedValueOnce({ rows: [] });                                                // findDirect: none
@@ -65,12 +65,34 @@ describe('message.service — sendMessage (direct)', () => {
       .mockResolvedValueOnce({ rows: [] })                // update last_message_at
       .mockResolvedValueOnce({ rows: [mockMessageRow] }); // fetchMessage
 
-    const result = await messageService.sendMessage('user-1', 'user-2', 'Bonjour');
+    const result = await messageService.sendMessage('user-1', 'member', 'user-2', 'Bonjour');
     expect(result.message.id).toBe('msg-1');
     expect(result.recipientIds).toEqual(['user-1', 'user-2']);
   });
 
-  it('reuses an existing conversation (no friendship check needed)', async () => {
+  it('does not allow an organizer to initiate a conversation with a non-friend member', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'user-2', role: 'member' }] }) // recipient
+      .mockResolvedValueOnce({ rows: [] })                                              // findDirect: none
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] });                                // areFriends: no
+
+    await expect(
+      messageService.sendMessage('user-1', 'organizer', 'user-2', 'Bonjour'),
+    ).rejects.toMatchObject({ statusCode: 403, code: 'NOT_FRIENDS' });
+  });
+
+  it('does not treat an admin as a publicly contactable organizer', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'user-2', role: 'admin' }] }) // recipient
+      .mockResolvedValueOnce({ rows: [] })                                             // findDirect: none
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] });                               // areFriends: no
+
+    await expect(
+      messageService.sendMessage('user-1', 'member', 'user-2', 'Bonjour'),
+    ).rejects.toMatchObject({ statusCode: 403, code: 'NOT_FRIENDS' });
+  });
+
+  it('allows an organizer to reply in a conversation already opened by a member', async () => {
     mockQuery
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'user-2', role: 'member' }] }) // recipient
       .mockResolvedValueOnce({ rows: [{ id: 'conv-1' }] })                              // findDirect: exists
@@ -78,7 +100,7 @@ describe('message.service — sendMessage (direct)', () => {
       .mockResolvedValueOnce({ rows: [] })                                              // update
       .mockResolvedValueOnce({ rows: [mockMessageRow] });                               // fetchMessage
 
-    const result = await messageService.sendMessage('user-1', 'user-2', 'Bonjour');
+    const result = await messageService.sendMessage('user-1', 'organizer', 'user-2', 'Bonjour');
     expect(result.message.id).toBe('msg-1');
     expect(mockConnect).not.toHaveBeenCalled(); // no creation
   });
@@ -94,7 +116,7 @@ describe('message.service — sendMessage (direct)', () => {
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [mockMessageRow] });
 
-    const result = await messageService.sendMessage('user-1', 'user-2', 'Bonjour');
+    const result = await messageService.sendMessage('user-1', 'member', 'user-2', 'Bonjour');
     expect(result.message.sender).toMatchObject({ id: 'user-1' });
     expect(mockConnect).toHaveBeenCalled();
   });

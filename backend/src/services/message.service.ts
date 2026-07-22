@@ -1,6 +1,6 @@
 import { pool } from '../db/pool';
 import { AppError } from '../middleware/errorHandler';
-import { Message, Conversation, ConversationParticipant, ReadReceipt, PaginatedResult } from '../types';
+import { Message, Conversation, ConversationParticipant, ReadReceipt, PaginatedResult, UserRole } from '../types';
 import { areFriends } from './friend.service';
 
 /** Message + expéditeur, alias camelCase — schéma Swagger `Message` */
@@ -223,11 +223,13 @@ async function createDirectConversation(a: string, b: string): Promise<string> {
 
 /**
  * Envoi d'un message direct (get-or-create de la conversation).
- * Règle d'accès : autorisé si le destinataire est organisateur/admin, si une
- * conversation existe déjà, ou si les deux utilisateurs sont amis.
+ * Règle d'accès : un membre peut démarrer une conversation avec un organisateur
+ * sans relation d'amitié. Dans les autres cas, une conversation existante ou
+ * une relation d'amitié est requise.
  */
 export async function sendMessage(
   senderId: string,
+  senderRole: UserRole,
   recipientId: string,
   content: string,
 ): Promise<SendResult> {
@@ -241,12 +243,12 @@ export async function sendMessage(
   );
   if (recipient.rowCount === 0) throw new AppError(404, 'Destinataire introuvable.', 'NOT_FOUND');
 
-  const isPublicContact = recipient.rows[0].role === 'organizer' || recipient.rows[0].role === 'admin';
+  const canContactOrganizer = senderRole === 'member' && recipient.rows[0].role === 'organizer';
   let conversationId = await findDirectConversation(senderId, recipientId);
 
-  // Gating : un membre ne peut écrire qu'à un ami — sauf pour contacter un
-  // organisateur, ou si une conversation existe déjà (réponse toujours permise).
-  if (!isPublicContact && conversationId === null && !(await areFriends(senderId, recipientId))) {
+  // Une conversation déjà ouverte reste bidirectionnelle : l'organisateur doit
+  // pouvoir répondre au membre qui l'a contacté.
+  if (!canContactOrganizer && conversationId === null && !(await areFriends(senderId, recipientId))) {
     throw new AppError(403, 'Vous devez être amis pour envoyer un message.', 'NOT_FRIENDS');
   }
 

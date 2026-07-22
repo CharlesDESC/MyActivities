@@ -58,11 +58,6 @@ export default function ConversationsScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          {router.canGoBack() && (
-            <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
-              <Icon name="arrow-back" size={24} />
-            </Pressable>
-          )}
           <ThemedText type="subtitle" style={styles.headerTitle}>Messages</ThemedText>
           <View style={styles.headerActions}>
             <Pressable

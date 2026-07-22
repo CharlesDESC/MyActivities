@@ -45,7 +45,7 @@ export async function handleSend(
 ): Promise<void> {
   try {
     const { recipientId, content } = SendMessageSchema.parse(payload);
-    const { message, recipientIds } = await messageService.sendMessage(user.sub, recipientId, content);
+    const { message, recipientIds } = await messageService.sendMessage(user.sub, user.role, recipientId, content);
     await broker.publish({
       type: SOCKET_EVENTS.MESSAGE_NEW,
       recipients: recipientIds,
