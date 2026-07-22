@@ -1,0 +1,336 @@
+// MyActivities — Database Schema (DBML)
+// Target: PostgreSQL
+// Source: swagger.yaml + business rules (CLAUDE.md)
+// Author: Charles Deschamps
+
+Project MyActivities {
+  database_type: 'PostgreSQL'
+  Note: 'MyActivities — Local activity discovery & planning platform'
+}
+
+// ══════════════════════════════════════════════
+// ENUMS
+// ══════════════════════════════════════════════
+
+Enum user_role {
+  member     [note: 'Compte créé — planning, avis']
+  organizer  [note: 'Référence ses activités']
+  admin      [note: 'Modération et administration']
+}
+
+Enum user_status {
+  active
+  suspended
+  deleted    [note: 'Soft-delete — anonymisation RGPD Art. 17']
+}
+
+Enum activity_category {
+  sport
+  culture
+  gastronomie
+  nature
+  bien_etre
+  art
+  musique
+  autre
+}
+
+Enum activity_status {
+  pending    [note: 'En attente de validation admin']
+  published  [note: 'Visible publiquement']
+  rejected   [note: 'Rejetée par un admin']
+  archived   [note: 'Archivée par l organisateur']
+}
+
+
+// ══════════════════════════════════════════════
+// USERS & AUTH
+// ══════════════════════════════════════════════
+
+Table users {
+  id                   uuid        [pk, default: `gen_random_uuid()`]
+  email                varchar(255) [unique, not null]
+  pseudo               varchar(30)  [unique, not null]
+  password_hash        varchar(60)  [not null, note: 'bcrypt, cost ≥ 12']
+  role                 user_role    [not null, default: 'member']
+  status               user_status  [not null, default: 'active']
+  siret                varchar(14)  [null, note: 'SIRET (14 chiffres) d un organisateur ; NULL pour un membre']
+  avatar_url           text         [null]
+  email_verified       boolean      [not null, default: false]
+  geolocation_consent  boolean      [not null, default: false, note: 'RGPD Art. 6.1.a — consentement explicite requis avant toute collecte GPS']
+  suspended_until      timestamptz  [null]
+  created_at           timestamptz  [not null, default: `now()`]
+  updated_at           timestamptz  [not null, default: `now()`]
+  deleted_at           timestamptz  [null, note: 'Soft delete — les données personnelles sont anonymisées à J+30']
+
+  indexes {
+    email       [name: 'idx_users_email']
+    pseudo      [name: 'idx_users_pseudo']
+    status      [name: 'idx_users_status']
+    role        [name: 'idx_users_role']
+  }
+
+  Note: 'Visiteur non authentifié = pas de ligne ici (accès lecture seule sans compte)'
+}
+
+Table refresh_tokens {
+  id          uuid        [pk, default: `gen_random_uuid()`]
+  user_id     uuid        [not null, ref: > users.id]
+  token_hash  varchar(64) [unique, not null, note: 'SHA-256 du token opaque envoyé au client']
+  expires_at  timestamptz [not null, note: '7 jours (ou prolongé si rememberMe=true)']
+  revoked_at  timestamptz [null, note: 'SET on logout ou changement de mot de passe']
+  created_at  timestamptz [not null, default: `now()`]
+
+  indexes {
+    token_hash  [name: 'idx_refresh_tokens_hash']
+    user_id     [name: 'idx_refresh_tokens_user']
+  }
+}
+
+Table password_reset_tokens {
+  id          uuid        [pk, default: `gen_random_uuid()`]
+  user_id     uuid        [not null, ref: > users.id]
+  token_hash  varchar(64) [unique, not null]
+  expires_at  timestamptz [not null, note: 'Valide 1h — usage unique']
+  used_at     timestamptz [null, note: 'SET à la consommation — le token est invalidé immédiatement']
+  created_at  timestamptz [not null, default: `now()`]
+
+  indexes {
+    token_hash  [name: 'idx_pwd_reset_hash']
+    user_id     [name: 'idx_pwd_reset_user']
+  }
+}
+
+Table email_verification_tokens {
+  id          uuid        [pk, default: `gen_random_uuid()`]
+  user_id     uuid        [not null, ref: > users.id]
+  token_hash  varchar(64) [unique, not null]
+  expires_at  timestamptz [not null]
+  used_at     timestamptz [null]
+  created_at  timestamptz [not null, default: `now()`]
+
+  indexes {
+    token_hash  [name: 'idx_email_verif_hash']
+  }
+}
+
+Table login_attempts {
+  id            uuid        [pk, default: `gen_random_uuid()`]
+  identifier    varchar(255) [not null, note: 'Pseudo saisi au login, stocké même si aucun compte ne correspond — tracking brute force']
+  ip_address    inet         [not null]
+  succeeded     boolean      [not null, default: false]
+  attempted_at  timestamptz  [not null, default: `now()`]
+
+  indexes {
+    (identifier, attempted_at)  [name: 'idx_login_attempts_identifier_time']
+    ip_address                  [name: 'idx_login_attempts_ip']
+  }
+
+  Note: '5 échecs sur 15 min → blocage. Job de nettoyage TTL à planifier (données > 24h supprimées).'
+}
+
+// ══════════════════════════════════════════════
+// ACTIVITIES
+// ══════════════════════════════════════════════
+
+Table activities {
+  id                     uuid              [pk, default: `gen_random_uuid()`]
+  organizer_id           uuid              [not null, ref: > users.id]
+  name                   varchar(100)      [not null]
+  category               activity_category [not null]
+  description            text              [not null, note: 'Min 20 / max 2000 chars']
+  address                varchar(500)      [not null]
+  location               "geography(POINT, 4326)" [not null, note: 'PostGIS WGS-84 — requêtes: ST_DWithin(location, ST_MakePoint(lng,lat)::geography, radius_m). Insertion: ST_MakePoint(lng, lat)::geography']
+  price_min              decimal(8,2)      [not null, note: '≥ 0']
+  price_max              decimal(8,2)      [not null, note: '≥ price_min']
+  opening_hours          jsonb             [null, note: '{"monday":"10:00-22:00","friday":"10:00-23:00",...}']
+  accessibility_pmr      boolean           [not null, default: false]
+  accessibility_stroller boolean           [not null, default: false]
+  website_url            text              [null]
+  cover_image_url        text              [null]
+  status                 activity_status   [not null, default: 'pending']
+  views                  integer           [not null, default: 0, note: 'Incrémenté à chaque GET /activities/:id']
+  avg_rating             decimal(3,2)      [null, note: 'Dénormalisé — recalculé après chaque create/update/delete review']
+  review_count           integer           [not null, default: 0, note: 'Dénormalisé — cohérent avec COUNT(reviews)']
+  search_tsv             tsvector          [null, note: "Generated: to_tsvector('french', name || ' ' || description || ' ' || category). Mis à jour par trigger on INSERT/UPDATE. Lecture seule côté app."]
+  admin_note             text              [null, note: 'Motif de rejet (visible de l organisateur)']
+  created_at             timestamptz       [not null, default: `now()`]
+  updated_at             timestamptz       [not null, default: `now()`]
+
+  indexes {
+    organizer_id  [name: 'idx_activities_organizer']
+    status        [name: 'idx_activities_status']
+    category      [name: 'idx_activities_category']
+    avg_rating    [name: 'idx_activities_rating']
+    location      [type: gist, name: 'idx_activities_location_gist', note: 'Requiert CREATE EXTENSION postgis — active par défaut sur Render/Supabase']
+    search_tsv    [type: gin,  name: 'idx_activities_search_gin',    note: 'Recherche full-text FR — query: plainto_tsquery(french, $search)']
+  }
+
+  Note: '''
+    Toute activité est créée en statut pending — publiée uniquement après approbation admin (BF-037).
+    Extraire lat/lng en lecture : ST_Y(location::geometry) AS latitude, ST_X(location::geometry) AS longitude.
+    Requête géo exemple : WHERE ST_DWithin(location, ST_MakePoint($2,$1)::geography, $3 * 1000)
+    Trigger SQL à créer :
+      CREATE OR REPLACE FUNCTION trg_activities_search_tsv() RETURNS trigger AS $$
+      BEGIN
+        NEW.search_tsv := to_tsvector(french, NEW.name || ' ' || NEW.description || ' ' || NEW.category::text);
+        RETURN NEW;
+      END $$ LANGUAGE plpgsql;
+      CREATE TRIGGER set_search_tsv BEFORE INSERT OR UPDATE ON activities
+        FOR EACH ROW EXECUTE FUNCTION trg_activities_search_tsv();
+  '''
+}
+
+Table activity_photos {
+  id           uuid        [pk, default: `gen_random_uuid()`]
+  activity_id  uuid        [not null, ref: > activities.id]
+  url          text        [not null]
+  position     smallint    [not null, default: 0, note: 'Ordre d affichage — max 10 photos par activité']
+  created_at   timestamptz [not null, default: `now()`]
+
+  indexes {
+    (activity_id, position)  [name: 'idx_activity_photos_order']
+  }
+}
+
+// ══════════════════════════════════════════════
+// PLANNING
+// ══════════════════════════════════════════════
+
+Table planning_entries {
+  id                       uuid        [pk, default: `gen_random_uuid()`]
+  user_id                  uuid        [not null, ref: > users.id]
+  activity_id              uuid        [not null, ref: > activities.id]
+  scheduled_at             timestamptz [not null, note: 'Ne peut pas être dans le passé à la création']
+  reminder_offset_minutes  integer     [null, note: 'Minutes avant scheduled_at pour envoyer le rappel']
+  created_at               timestamptz [not null, default: `now()`]
+
+  indexes {
+    user_id                   [name: 'idx_planning_user']
+    (user_id, scheduled_at)   [name: 'idx_planning_user_date']
+    activity_id               [name: 'idx_planning_activity']
+  }
+
+  Note: 'Un utilisateur peut ajouter la même activité plusieurs fois (dates différentes)'
+}
+
+// ══════════════════════════════════════════════
+// REVIEWS
+// ══════════════════════════════════════════════
+
+Table reviews {
+  id           uuid        [pk, default: `gen_random_uuid()`]
+  user_id      uuid        [not null, ref: > users.id]
+  activity_id  uuid        [not null, ref: > activities.id]
+  rating       smallint    [not null, note: '1–5 étoiles']
+  created_at   timestamptz [not null, default: `now()`]
+  updated_at   timestamptz [null]
+
+  indexes {
+    (user_id, activity_id)  [unique, name: 'uq_reviews_user_activity', note: '1 note max par utilisateur par activité — BF-029']
+    activity_id             [name: 'idx_reviews_activity']
+    rating                  [name: 'idx_reviews_rating']
+  }
+
+  Note: 'Pas de commentaire — note uniquement (1–5 étoiles). Pas de signalement possible sur une note brute.'
+}
+
+// ══════════════════════════════════════════════
+// AUDIT LOG ADMIN
+// ══════════════════════════════════════════════
+
+Table admin_audit_log {
+  id           uuid        [pk, default: `gen_random_uuid()`]
+  admin_id     uuid        [not null, ref: > users.id]
+  action       varchar(50) [not null, note: 'APPROVE_ACTIVITY | REJECT_ACTIVITY | SUSPEND_USER | DELETE_USER | DELETE_REVIEW']
+  target_type  varchar(20) [not null, note: 'activity | user | review']
+  target_id    uuid        [not null]
+  reason       text        [null]
+  metadata     jsonb       [null, note: 'Contexte additionnel (ancien statut, nouveau statut, etc.)']
+  created_at   timestamptz [not null, default: `now()`]
+
+  indexes {
+    admin_id               [name: 'idx_audit_admin']
+    (target_type, target_id) [name: 'idx_audit_target']
+    created_at             [name: 'idx_audit_date']
+  }
+
+  Note: 'Immutable — aucune ligne ne doit jamais être UPDATE/DELETE. Journalisation de toutes les actions admin.'
+}
+
+
+// ══════════════════════════════════════════════
+// MESSAGERIE & SOCIAL
+// ══════════════════════════════════════════════
+
+Enum conversation_type {
+  direct [note: 'Conversation 1-à-1']
+  group  [note: 'Conversation de groupe (N participants)']
+}
+
+Enum friendship_status {
+  pending  [note: 'Demande en attente de réponse']
+  accepted [note: 'Amitié acceptée (symétrique)']
+}
+
+// Conversation directe (1-à-1) ou de groupe. Les membres sont portés par la
+// table de jointure conversation_participants (modèle N-participants unifié).
+Table conversations {
+  id               uuid              [pk, default: `gen_random_uuid()`]
+  type             conversation_type [not null, default: 'direct']
+  title            text              [null, note: 'Nom du groupe ; null pour un direct']
+  created_by       uuid              [null, ref: > users.id, note: 'Créateur (admin) d un groupe']
+  created_at       timestamptz       [not null, default: `now()`]
+  last_message_at  timestamptz       [not null, default: `now()`]
+
+  indexes {
+    type            [name: 'idx_conversations_type']
+    last_message_at [name: 'idx_conversations_last']
+  }
+}
+
+// Participation d'un utilisateur à une conversation. `last_read_at` porte le
+// décompte des messages non lus (unifié direct + groupe).
+Table conversation_participants {
+  conversation_id  uuid        [not null, ref: > conversations.id]
+  user_id          uuid        [not null, ref: > users.id]
+  role             text        [not null, default: 'member', note: 'admin | member']
+  joined_at        timestamptz [not null, default: `now()`]
+  last_read_at     timestamptz [null]
+
+  indexes {
+    (conversation_id, user_id) [pk]
+    user_id                    [name: 'idx_conv_participants_user']
+  }
+}
+
+Table messages {
+  id               uuid        [pk, default: `gen_random_uuid()`]
+  conversation_id  uuid        [not null, ref: > conversations.id]
+  sender_id        uuid        [not null, ref: > users.id]
+  content          text        [not null]
+  read_at          timestamptz [null, note: 'Accusé de lecture (directs)']
+  created_at       timestamptz [not null, default: `now()`]
+
+  indexes {
+    (conversation_id, created_at) [name: 'idx_messages_conversation']
+  }
+}
+
+// Relation d'amitié. Orientée par la demande (requester → addressee) mais
+// symétrique une fois acceptée. Unicité non-orientée : une ligne par paire.
+Table friendships {
+  id            uuid              [pk, default: `gen_random_uuid()`]
+  requester_id  uuid              [not null, ref: > users.id]
+  addressee_id  uuid              [not null, ref: > users.id]
+  status        friendship_status [not null, default: 'pending']
+  created_at    timestamptz       [not null, default: `now()`]
+  responded_at  timestamptz       [null]
+
+  indexes {
+    (requester_id, addressee_id) [unique, name: 'uq_friendship_pair', note: 'Unicité non-orientée via LEAST/GREATEST côté SQL']
+    addressee_id                 [name: 'idx_friendships_addressee']
+  }
+
+  Note: 'La messagerie directe entre membres exige une amitié acceptée ; exception : contacter un organisateur.'
+}

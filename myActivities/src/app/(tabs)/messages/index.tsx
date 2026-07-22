@@ -1,0 +1,146 @@
+import { FlatList, Pressable, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+
+import { styles } from '@/styles/app/messages';
+import { ThemedText } from '@/components/ui/themed-text';
+import { ThemedView } from '@/components/ui/themed-view';
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/use-theme';
+import { useConversations } from '@/hooks/use-conversations';
+import { useRealtime } from '@/hooks/use-realtime';
+import type { Conversation } from '@/types/message';
+
+function formatTime(iso: string): string {
+  const date = new Date(iso);
+  const today = new Date();
+  const sameDay = date.toDateString() === today.toDateString();
+  return sameDay
+    ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    : date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+}
+
+/** Nom affiché d'une conversation : titre du groupe, ou pseudo de l'autre membre. */
+function conversationName(c: Conversation): string {
+  if (c.type === 'group') return c.title ?? 'Groupe';
+  return c.otherParticipant?.pseudo ?? 'Conversation';
+}
+
+export default function ConversationsScreen() {
+  const router = useRouter();
+  const theme = useTheme();
+  useRealtime(); // maintient la connexion socket
+  const { conversations, isLoading, error, refresh } = useConversations();
+
+  function openConversation(c: Conversation) {
+    router.push({
+      pathname: '/messages/[conversationId]',
+      params: {
+        conversationId: c.id,
+        peerPseudo: conversationName(c),
+        // Un direct est identifié par le destinataire ; un groupe par son id seul.
+        ...(c.type === 'direct' && c.otherParticipant ? { recipientId: c.otherParticipant.id } : {}),
+      },
+    });
+  }
+
+  if (error) {
+    return (
+      <ThemedView style={styles.errorContainer}>
+        <ThemedText style={{ fontSize: 36 }}>😕</ThemedText>
+        <ThemedText type="subtitle">Erreur de chargement</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
+        <Button label="Réessayer" variant="ghost" onPress={refresh} />
+      </ThemedView>
+    );
+  }
+
+  return (
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.header}>
+          {router.canGoBack() && (
+            <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
+              <ThemedText style={styles.backIcon}>←</ThemedText>
+            </Pressable>
+          )}
+          <ThemedText type="subtitle" style={styles.headerTitle}>Messages</ThemedText>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push('/messages/friends')}
+              accessibilityRole="button"
+              accessibilityLabel="Amis">
+              <ThemedText style={styles.headerActionIcon}>👥</ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/messages/new-group')}
+              accessibilityRole="button"
+              accessibilityLabel="Nouveau groupe">
+              <ThemedText style={styles.headerActionIcon}>＋</ThemedText>
+            </Pressable>
+          </View>
+        </View>
+
+        <FlatList
+          data={conversations}
+          keyExtractor={(item) => item.id}
+          refreshing={isLoading}
+          onRefresh={refresh}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => (
+            <View style={[styles.separator, { backgroundColor: theme.backgroundSelected }]} />
+          )}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => openConversation(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Conversation ${conversationName(item)}`}>
+              <View style={styles.row}>
+                <ThemedView type="backgroundElement" style={styles.avatar}>
+                  <ThemedText style={styles.avatarEmoji}>{item.type === 'group' ? '👥' : '👤'}</ThemedText>
+                </ThemedView>
+                <View style={styles.rowBody}>
+                  <View style={styles.rowTop}>
+                    <ThemedText type="smallBold" numberOfLines={1}>
+                      {conversationName(item)}
+                    </ThemedText>
+                    {item.lastMessage && (
+                      <ThemedText type="small" themeColor="textSecondary" style={styles.time}>
+                        {formatTime(item.lastMessage.createdAt)}
+                      </ThemedText>
+                    )}
+                  </View>
+                  <View style={styles.rowTop}>
+                    <ThemedText
+                      type="small"
+                      themeColor="textSecondary"
+                      numberOfLines={1}
+                      style={styles.preview}>
+                      {item.lastMessage?.content ?? 'Nouvelle conversation'}
+                    </ThemedText>
+                    {item.unreadCount > 0 && (
+                      <View style={styles.unreadBadge}>
+                        <ThemedText style={styles.unreadText}>{item.unreadCount}</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+          )}
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.empty}>
+                <ThemedText style={styles.emptyEmoji}>💬</ThemedText>
+                <ThemedText type="smallBold">Aucune conversation</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
+                  Ajoute des amis puis démarre une conversation ou crée un groupe.
+                </ThemedText>
+              </View>
+            ) : null
+          }
+        />
+      </SafeAreaView>
+    </ThemedView>
+  );
+}

@@ -1,0 +1,2602 @@
+openapi: 3.0.3
+info:
+  title: MyActivities API
+  description: |
+    API REST de la plateforme **MyActivities** — découverte, planification et évaluation d'activités locales.
+
+    ## Authentification
+    L'API utilise des **JWT Bearer tokens** (access token 15 min + refresh token 7 jours).
+    Les endpoints protégés nécessitent le header : `Authorization: Bearer <access_token>`
+
+    ## Rôles utilisateurs
+    | Rôle | Description |
+    |------|-------------|
+    | `visitor` | Non connecté — lecture seule |
+    | `member` | Compte créé — planning, avis |
+    | `organizer` | Référence ses activités |
+    | `admin` | Modération et administration |
+
+    ## Règles métier importantes
+    - **1 avis par utilisateur par activité** (enforced côté backend)
+    - **Toute nouvelle activité requiert une validation admin** avant publication
+    - **Brute force** : 5 tentatives échouées → blocage 15 min
+    - **Géolocalisation** : consentement explicite requis (RGPD Art. 6.1.a)
+    - **Suppression de compte** : efface toutes les données personnelles (RGPD Art. 17)
+
+    ## Codes d'erreur communs
+    | Code | Signification |
+    |------|---------------|
+    | 400 | Données invalides |
+    | 401 | Token manquant ou expiré |
+    | 403 | Accès refusé (rôle insuffisant) |
+    | 404 | Ressource introuvable |
+    | 409 | Conflit (ex : email déjà utilisé) |
+    | 429 | Trop de requêtes (rate limiting) |
+
+  version: 1.0.0
+  contact:
+    name: Charles Deschamps
+    email: Charles.deschamps06@hotmail.com
+  license:
+    name: Projet de certification RNCP 39583
+
+servers:
+  - url: https://api.myactivities.app/v1
+    description: Production
+  - url: https://staging-api.myactivities.app/v1
+    description: Staging
+  - url: http://localhost:3000/v1
+    description: Développement local
+
+tags:
+  - name: Auth
+    description: Authentification et gestion de session
+  - name: Users
+    description: Profil utilisateur et données personnelles
+  - name: Activities
+    description: Découverte et consultation des activités
+  - name: Planning
+    description: Planning personnel de l'utilisateur connecté
+  - name: Reviews
+    description: Avis et notation des activités
+  - name: Organizers
+    description: Espace organisateur — gestion des activités publiées
+  - name: Admin
+    description: Administration et modération de la plateforme
+  - name: Messaging
+    description: |
+      Messagerie directe (1-à-1) et de groupe. Le temps réel passe par Socket.IO
+      (handshake authentifié par le même JWT `Bearer`, événements `message:send` /
+      `message:send-group` / `message:new` / `message:read` / `conversation:read` /
+      `conversation:new` / `conversation:updated`). Les endpoints REST ci-dessous
+      servent l'historique et le repli hors-socket.
+      Règle d'accès : un membre ne peut écrire qu'à un ami, sauf pour contacter un
+      organisateur (403 `NOT_FRIENDS` sinon).
+  - name: Friends
+    description: |
+      Système d'amis : recherche d'utilisateurs, demandes, acceptation/refus et
+      suppression. Les amitiés conditionnent l'envoi de messages directs et la
+      composition des groupes.
+
+# ─────────────────────────────────────────────
+# SECURITY SCHEMES
+# ─────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token JWT (expiration 15 min)
+
+  # ─────────────────────────────────────────────
+  # SCHEMAS
+  # ─────────────────────────────────────────────
+  schemas:
+
+    # ── Pagination ──────────────────────────────
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        totalPages:
+          type: integer
+          example: 3
+
+    # ── Errors ──────────────────────────────────
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Le champ email est invalide.
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    # ── Auth ────────────────────────────────────
+    RegisterRequest:
+      type: object
+      required: [email, pseudo, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        pseudo:
+          type: string
+          minLength: 3
+          maxLength: 30
+          example: JohnDoe42
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: "Min 8 caractères, 1 majuscule, 1 chiffre"
+          example: MyP@ssw0rd
+        siret:
+          type: string
+          pattern: '^[0-9]{14}$'
+          description: >
+            SIRET (14 chiffres) d'un organisateur. Fournir un SIRET crée
+            directement un compte `organizer` ; l'omettre crée un compte `member`.
+          example: "73282932000074"
+
+    LoginRequest:
+      type: object
+      required: [pseudo, password]
+      properties:
+        pseudo:
+          type: string
+          minLength: 3
+          maxLength: 30
+          example: JohnDoe42
+        password:
+          type: string
+          format: password
+          example: MyP@ssw0rd
+        rememberMe:
+          type: boolean
+          default: false
+          description: Prolonge la durée du refresh token
+
+    AuthTokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT valide 15 minutes
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          description: Token opaque valide 7 jours
+          example: dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...
+        expiresIn:
+          type: integer
+          description: Durée de vie de l'access token en secondes
+          example: 900
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+          description: Token reçu par email (valide 1h, usage unique)
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: NewP@ssw0rd
+
+    # ── User ────────────────────────────────────
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        pseudo:
+          type: string
+          example: JohnDoe42
+        role:
+          type: string
+          enum: [member, organizer, admin]
+          example: member
+        status:
+          type: string
+          enum: [active, suspended, deleted]
+          example: active
+        siret:
+          type: string
+          nullable: true
+          description: SIRET de l'organisateur (14 chiffres) ; null pour un membre.
+          example: "73282932000074"
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: https://cdn.myactivities.app/avatars/uuid.jpg
+        createdAt:
+          type: string
+          format: date-time
+        emailVerified:
+          type: boolean
+          example: true
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        pseudo:
+          type: string
+          minLength: 3
+          maxLength: 30
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    DeleteAccountRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          format: password
+          description: Confirmation du mot de passe avant suppression définitive
+
+    # ── Activity ─────────────────────────────────
+    ActivityCategory:
+      type: string
+      enum: [sport, culture, gastronomie, nature, bien_etre, art, musique, autre]
+
+    ActivityStatus:
+      type: string
+      enum: [pending, published, rejected, archived]
+
+    ActivitySummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Escalade en salle — ClimbUp Lyon
+        category:
+          $ref: '#/components/schemas/ActivityCategory'
+        distance:
+          type: number
+          format: float
+          description: Distance en km depuis la position de l'utilisateur
+          example: 1.4
+        avgRating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          example: 4.2
+        reviewCount:
+          type: integer
+          example: 37
+        priceMin:
+          type: number
+          format: float
+          example: 8.0
+        priceMax:
+          type: number
+          format: float
+          example: 15.0
+        coverImage:
+          type: string
+          format: uri
+          nullable: true
+        address:
+          type: string
+          example: 12 Rue de la République, 69001 Lyon
+        latitude:
+          type: number
+          format: float
+          example: 45.7640
+        longitude:
+          type: number
+          format: float
+          example: 4.8357
+
+    ActivityDetail:
+      allOf:
+        - $ref: '#/components/schemas/ActivitySummary'
+        - type: object
+          properties:
+            description:
+              type: string
+              example: Salle d'escalade indoor avec murs de 12m et blocs tous niveaux.
+            openingHours:
+              type: object
+              description: Horaires par jour de la semaine
+              example:
+                monday: "10:00-22:00"
+                tuesday: "10:00-22:00"
+                wednesday: "10:00-22:00"
+                thursday: "10:00-22:00"
+                friday: "10:00-23:00"
+                saturday: "09:00-22:00"
+                sunday: "09:00-20:00"
+            accessibility:
+              type: object
+              properties:
+                pmr:
+                  type: boolean
+                  description: Accessible PMR
+                  example: true
+                stroller:
+                  type: boolean
+                  description: Accessible poussette
+                  example: false
+            photos:
+              type: array
+              items:
+                type: string
+                format: uri
+            websiteUrl:
+              type: string
+              format: uri
+              nullable: true
+            status:
+              $ref: '#/components/schemas/ActivityStatus'
+            adminNote:
+              type: string
+              nullable: true
+              description: Motif de rejet renseigné par l'admin (null sinon)
+            organizer:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                pseudo:
+                  type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    CreateActivityRequest:
+      type: object
+      required: [name, category, description, address, latitude, longitude, priceMin, priceMax]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Escalade en salle — ClimbUp Lyon
+        category:
+          $ref: '#/components/schemas/ActivityCategory'
+        description:
+          type: string
+          minLength: 20
+          maxLength: 2000
+        address:
+          type: string
+          example: 12 Rue de la République, 69001 Lyon
+        latitude:
+          type: number
+          format: float
+          example: 45.7640
+        longitude:
+          type: number
+          format: float
+          example: 4.8357
+        priceMin:
+          type: number
+          format: float
+          minimum: 0
+          example: 8.0
+        priceMax:
+          type: number
+          format: float
+          minimum: 0
+          example: 15.0
+        openingHours:
+          type: object
+          example:
+            monday: "10:00-22:00"
+            friday: "10:00-23:00"
+        accessibility:
+          type: object
+          properties:
+            pmr:
+              type: boolean
+            stroller:
+              type: boolean
+        websiteUrl:
+          type: string
+          format: uri
+          nullable: true
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 10
+
+    UpdateActivityRequest:
+      type: object
+      description: Tous les champs sont optionnels — PATCH sémantique
+      properties:
+        name:
+          type: string
+        category:
+          $ref: '#/components/schemas/ActivityCategory'
+        description:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        priceMin:
+          type: number
+          format: float
+        priceMax:
+          type: number
+          format: float
+        openingHours:
+          type: object
+        accessibility:
+          type: object
+          properties:
+            pmr:
+              type: boolean
+            stroller:
+              type: boolean
+        websiteUrl:
+          type: string
+          format: uri
+          nullable: true
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    # ── Planning ─────────────────────────────────
+    PlanningEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        activity:
+          $ref: '#/components/schemas/ActivitySummary'
+        scheduledAt:
+          type: string
+          format: date-time
+          example: "2026-07-14T14:00:00Z"
+        reminderOffset:
+          type: integer
+          description: Délai de rappel en minutes avant l'activité
+          example: 60
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    AddToPlanningRequest:
+      type: object
+      required: [activityId, scheduledAt]
+      properties:
+        activityId:
+          type: string
+          format: uuid
+        scheduledAt:
+          type: string
+          format: date-time
+          description: La date ne peut pas être dans le passé
+          example: "2026-07-14T14:00:00Z"
+        reminderOffset:
+          type: integer
+          description: "Délai de rappel en minutes (ex: 60 = 1h avant)"
+          example: 60
+          nullable: true
+
+    # ── Reviews ──────────────────────────────────
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        author:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            pseudo:
+              type: string
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Messaging ───────────────────────────────
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        content:
+          type: string
+          example: Bonjour, l'activité est-elle accessible en poussette ?
+        createdAt:
+          type: string
+          format: date-time
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        sender:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            pseudo:
+              type: string
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+
+    ConversationParticipant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        pseudo:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          type: string
+          enum: [admin, member]
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [direct, group]
+        title:
+          type: string
+          nullable: true
+          description: Nom du groupe (null pour une conversation directe).
+        otherParticipant:
+          type: object
+          nullable: true
+          description: L'autre membre d'un direct (null pour un groupe).
+          properties:
+            id:
+              type: string
+              format: uuid
+            pseudo:
+              type: string
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationParticipant'
+        lastMessage:
+          type: object
+          nullable: true
+          properties:
+            content:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            senderId:
+              type: string
+              format: uuid
+        unreadCount:
+          type: integer
+          example: 3
+        updatedAt:
+          type: string
+          format: date-time
+
+    Friend:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        pseudo:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        friendsSince:
+          type: string
+          format: date-time
+          nullable: true
+
+    FriendRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        direction:
+          type: string
+          enum: [incoming, outgoing]
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            pseudo:
+              type: string
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    SendMessageRequest:
+      type: object
+      required: [recipientId, content]
+      properties:
+        recipientId:
+          type: string
+          format: uuid
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          example: Bonjour, l'activité est-elle accessible en poussette ?
+
+    SendToConversationRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    CreateGroupRequest:
+      type: object
+      required: [title, memberIds]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+          example: Rando dimanche
+        memberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 50
+
+    RenameGroupRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+
+    AddMemberRequest:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: string
+          format: uuid
+
+    SendFriendRequestBody:
+      type: object
+      required: [addresseeId]
+      properties:
+        addresseeId:
+          type: string
+          format: uuid
+
+    CreateReviewRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+
+    UpdateReviewRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+
+    # ── Admin ─────────────────────────────────────
+    AdminUser:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            suspendedUntil:
+              type: string
+              format: date-time
+              nullable: true
+            reviewCount:
+              type: integer
+              example: 5
+            planningCount:
+              type: integer
+              example: 12
+
+    OrganizerStats:
+      type: object
+      properties:
+        activityId:
+          type: string
+          format: uuid
+        activityName:
+          type: string
+        views:
+          type: integer
+          description: Nombre de consultations de la fiche
+          example: 1240
+        planningAdds:
+          type: integer
+          description: Nombre d'ajouts au planning
+          example: 87
+        avgRating:
+          type: number
+          format: float
+          example: 4.3
+        reviewCount:
+          type: integer
+          example: 22
+
+  # ─────────────────────────────────────────────
+  # PARAMETERS
+  # ─────────────────────────────────────────────
+  parameters:
+    activityId:
+      name: activityId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    reviewId:
+      name: reviewId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    planningId:
+      name: planningId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  # ─────────────────────────────────────────────
+  # RESPONSES
+  # ─────────────────────────────────────────────
+  responses:
+    Unauthorized:
+      description: Token manquant ou expiré
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: UNAUTHORIZED
+            message: Token JWT manquant ou expiré.
+    Forbidden:
+      description: Rôle insuffisant pour cette action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: FORBIDDEN
+            message: Accès réservé aux administrateurs.
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: NOT_FOUND
+            message: Ressource introuvable.
+    TooManyRequests:
+      description: Trop de tentatives — rate limiting déclenché
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Secondes avant de réessayer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: RATE_LIMITED
+            message: Compte temporairement bloqué. Réessayez dans 15 minutes.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ══════════════════════════════
+  # AUTH
+  # ══════════════════════════════
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Créer un compte
+      description: |
+        Inscription avec email + pseudo + mot de passe.
+        Un email de confirmation est envoyé — le compte n'est activé qu'après validation.
+        Protection OWASP : le message d'erreur ne révèle pas si l'email existe déjà.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Compte créé — email de confirmation envoyé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Compte créé. Vérifiez votre email pour activer votre compte.
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email ou pseudo déjà utilisé (codes EMAIL_ALREADY_EXISTS / PSEUDO_ALREADY_EXISTS)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: EMAIL_ALREADY_EXISTS
+                message: Un compte avec cet email existe déjà.
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Se connecter
+      description: |
+        Connexion par pseudo + mot de passe.
+        **Rate limiting** : 5 tentatives échouées → blocage 15 min (BNF-010).
+        Retourne un access token (15 min) et un refresh token (7 jours).
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AuthTokens'
+                  - type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Identifiants incorrects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: INVALID_CREDENTIALS
+                message: Pseudo ou mot de passe incorrect.
+        '403':
+          description: Compte suspendu (ACCOUNT_SUSPENDED) ou email non vérifié (EMAIL_NOT_VERIFIED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: EMAIL_NOT_VERIFIED
+                message: Email non vérifié. Consultez votre boîte mail pour activer votre compte.
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Se déconnecter
+      description: Invalide le refresh token côté serveur.
+      operationId: logout
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '204':
+          description: Déconnexion réussie
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rafraîchir le token d'accès
+      description: Échange un refresh token valide contre un nouvel access token.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Nouveau token émis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Refresh token invalide ou expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Demande de réinitialisation de mot de passe
+      description: |
+        Envoie un email avec un lien de réinitialisation (valide 1h, usage unique).
+        **Protection OWASP** : la réponse est identique que l'email existe ou non (anti-énumération).
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Email envoyé si le compte existe
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Si un compte correspond à cet email, vous recevrez un lien de réinitialisation.
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Réinitialiser le mot de passe
+      description: Finalise la réinitialisation avec le token reçu par email.
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Mot de passe réinitialisé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Mot de passe mis à jour. Vous pouvez vous connecter.
+        '400':
+          description: Token invalide, expiré ou déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/verify-email/{token}:
+    get:
+      tags: [Auth]
+      summary: Vérifier son adresse email
+      description: Active le compte via le token reçu par email lors de l'inscription (valide 24h, usage unique).
+      operationId: verifyEmail
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Email vérifié
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Email vérifié avec succès.
+        '400':
+          description: Token invalide ou expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: INVALID_VERIFICATION_TOKEN
+                message: Token de vérification invalide ou expiré.
+
+  # ══════════════════════════════
+  # USERS
+  # ══════════════════════════════
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Obtenir son profil
+      operationId: getMe
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profil utilisateur connecté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags: [Users]
+      summary: Mettre à jour son profil
+      operationId: updateMe
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profil mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Pseudo déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: PSEUDO_ALREADY_EXISTS
+                message: Ce pseudo est déjà utilisé.
+
+    delete:
+      tags: [Users]
+      summary: Supprimer son compte
+      description: |
+        Supprime définitivement le compte et toutes les données associées (RGPD Art. 17).
+        Données effacées : compte, planning, avis, données personnelles.
+        Les avis peuvent être conservés sous forme anonymisée (à documenter dans la politique de confidentialité).
+      operationId: deleteMe
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteAccountRequest'
+      responses:
+        '204':
+          description: Compte supprimé — email de confirmation envoyé
+        '401':
+          description: Mot de passe de confirmation incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ══════════════════════════════
+  # ACTIVITIES
+  # ══════════════════════════════
+
+  /activities:
+    get:
+      tags: [Activities]
+      summary: Lister les activités géolocalisées
+      description: |
+        Retourne les activités autour d'une position GPS avec filtres optionnels.
+        Accessible sans authentification (visiteur).
+        La géolocalisation de l'utilisateur doit être transmise par le client (avec consentement RGPD explicite).
+      operationId: listActivities
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+          description: Latitude de l'utilisateur
+          example: 45.7640
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+          description: Longitude de l'utilisateur
+          example: 4.8357
+        - name: radius
+          in: query
+          schema:
+            type: number
+            format: float
+            default: 5
+            minimum: 0.5
+            maximum: 50
+          description: Rayon de recherche en km (défaut 5 km)
+        - name: category
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ActivityCategory'
+          style: form
+          explode: false
+          description: Filtrer par catégories (choix multiple)
+        - name: priceMin
+          in: query
+          schema:
+            type: number
+            format: float
+            minimum: 0
+          description: Prix minimum (€)
+        - name: priceMax
+          in: query
+          schema:
+            type: number
+            format: float
+          description: Prix maximum (€)
+        - name: minRating
+          in: query
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 5
+          description: Note moyenne minimale
+        - name: search
+          in: query
+          schema:
+            type: string
+            minLength: 3
+          description: Recherche textuelle (nom, description, catégorie)
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [distance, rating, price_asc, price_desc]
+            default: distance
+          description: Critère de tri
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Liste paginée d'activités
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivitySummary'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '400':
+          description: Paramètres lat/lng manquants ou invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Activities]
+      summary: Créer une activité
+      description: |
+        Réservé aux organisateurs.
+        L'activité est créée avec le statut `pending` et doit être validée par un admin avant publication (BF-037).
+      operationId: createActivity
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActivityRequest'
+      responses:
+        '201':
+          description: Activité créée — en attente de validation admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityDetail'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Rôle organizer requis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /activities/{activityId}:
+    get:
+      tags: [Activities]
+      summary: Obtenir la fiche d'une activité
+      description: Retourne tous les détails d'une activité publiée. Accessible sans authentification.
+      operationId: getActivity
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+      responses:
+        '200':
+          description: Fiche activité complète
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Activities]
+      summary: Modifier une activité
+      description: |
+        Réservé à l'organisateur propriétaire ou à un admin.
+        Une modification remet l'activité en statut `pending` si des champs clés sont modifiés.
+      operationId: updateActivity
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateActivityRequest'
+      responses:
+        '200':
+          description: Activité mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityDetail'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Activities]
+      summary: Supprimer une activité
+      description: Réservé à l'organisateur propriétaire ou à un admin.
+      operationId: deleteActivity
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+      responses:
+        '204':
+          description: Activité supprimée
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ══════════════════════════════
+  # PLANNING
+  # ══════════════════════════════
+
+  /planning:
+    get:
+      tags: [Planning]
+      summary: Obtenir son planning
+      description: Retourne les activités planifiées par l'utilisateur connecté, triées par date croissante.
+      operationId: getPlanning
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filtrer à partir de cette date (ISO 8601)
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filtrer jusqu'à cette date (ISO 8601)
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Planning de l'utilisateur
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlanningEntry'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Planning]
+      summary: Ajouter une activité au planning
+      description: La date scheduledAt ne peut pas être dans le passé.
+      operationId: addToPlanning
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToPlanningRequest'
+      responses:
+        '201':
+          description: Activité ajoutée au planning
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanningEntry'
+        '400':
+          description: Date invalide ou dans le passé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Activité introuvable ou non publiée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /planning/{planningId}:
+    delete:
+      tags: [Planning]
+      summary: Supprimer une entrée du planning
+      operationId: removePlanning
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/planningId'
+      responses:
+        '204':
+          description: Entrée supprimée du planning
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: L'entrée n'appartient pas à l'utilisateur connecté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ══════════════════════════════
+  # REVIEWS
+  # ══════════════════════════════
+
+  /activities/{activityId}/reviews:
+    get:
+      tags: [Reviews]
+      summary: Lister les avis d'une activité
+      description: Accessible sans authentification. Triés par date décroissante par défaut.
+      operationId: listReviews
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [date_desc, date_asc, rating_desc, rating_asc]
+            default: date_desc
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Liste paginée d'avis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avgRating:
+                    type: number
+                    format: float
+                    example: 4.2
+                  reviewCount:
+                    type: integer
+                    example: 37
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Reviews]
+      summary: Déposer un avis
+      description: |
+        **Règles métier** (BF-029) :
+        - 1 avis maximum par utilisateur par activité.
+        - L'avis est réservé aux utilisateurs ayant ajouté l'activité à leur planning (anti-spam).
+        Si un avis existe déjà, utiliser `PATCH /activities/{activityId}/reviews/{reviewId}`.
+        La note moyenne de l'activité est recalculée immédiatement après dépôt.
+      operationId: createReview
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Avis publié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: L'activité n'est pas dans le planning de l'utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: PLANNING_REQUIRED
+                message: Vous devez avoir ajouté cette activité à votre planning pour la noter.
+        '404':
+          description: Activité introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Un avis de cet utilisateur existe déjà pour cette activité
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: REVIEW_ALREADY_EXISTS
+                message: Vous avez déjà déposé un avis pour cette activité.
+
+  /activities/{activityId}/reviews/{reviewId}:
+    patch:
+      tags: [Reviews]
+      summary: Modifier son avis
+      description: Réservé à l'auteur de l'avis. La note moyenne de l'activité est recalculée.
+      operationId: updateReview
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+        - $ref: '#/components/parameters/reviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+      responses:
+        '200':
+          description: Avis mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: L'avis n'appartient pas à l'utilisateur connecté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Reviews]
+      summary: Supprimer son avis
+      description: Réservé à l'auteur de l'avis ou à un admin.
+      operationId: deleteReview
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+        - $ref: '#/components/parameters/reviewId'
+      responses:
+        '204':
+          description: Avis supprimé
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ══════════════════════════════
+  # ORGANIZERS
+  # ══════════════════════════════
+
+  /organizers/me/activities:
+    get:
+      tags: [Organizers]
+      summary: Lister ses activités
+      description: Retourne toutes les activités de l'organisateur connecté (tous statuts inclus).
+      operationId: getOrganizerActivities
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ActivityStatus'
+          description: Filtrer par statut
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Activités de l'organisateur
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivityDetail'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Rôle organizer requis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /organizers/me/stats:
+    get:
+      tags: [Organizers]
+      summary: Statistiques de ses activités
+      description: Vues, ajouts au planning, note moyenne par activité.
+      operationId: getOrganizerStats
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Statistiques par activité
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizerStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Rôle organizer requis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ══════════════════════════════
+  # ADMIN
+  # ══════════════════════════════
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Lister les utilisateurs
+      description: Réservé aux administrateurs. Retourne tous les comptes avec leur statut.
+      operationId: adminListUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended, deleted]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [member, organizer, admin]
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Recherche par pseudo ou email
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUser'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users/{userId}/suspend:
+    patch:
+      tags: [Admin]
+      summary: Suspendre un compte utilisateur
+      description: Suspension temporaire. Les actions de l'admin sont journalisées.
+      operationId: adminSuspendUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, suspendUntil]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  example: Comportement abusif répété dans les avis.
+                suspendUntil:
+                  type: string
+                  format: date-time
+                  description: Date de fin de suspension
+      responses:
+        '200':
+          description: Compte suspendu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/{userId}:
+    delete:
+      tags: [Admin]
+      summary: Supprimer un compte utilisateur
+      description: Suppression définitive par l'admin. Action journalisée avec motif.
+      operationId: adminDeleteUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '204':
+          description: Compte supprimé
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/users/{userId}/role:
+    patch:
+      tags: [Admin]
+      summary: Changer le rôle d'un utilisateur
+      description: Promotion ou rétrogradation (member ↔ organizer ↔ admin). Action journalisée.
+      operationId: adminChangeUserRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [member, organizer, admin]
+      responses:
+        '200':
+          description: Rôle mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/activities/pending:
+    get:
+      tags: [Admin]
+      summary: Lister les activités en attente de validation
+      operationId: adminListPendingActivities
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Activités en attente de validation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivityDetail'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/activities/{activityId}/approve:
+    patch:
+      tags: [Admin]
+      summary: Valider une activité
+      description: |
+        Passe l'activité de `pending` à `published`.
+        L'organisateur est notifié de la publication.
+      operationId: adminApproveActivity
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+      responses:
+        '200':
+          description: Activité publiée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/activities/{activityId}/reject:
+    patch:
+      tags: [Admin]
+      summary: Rejeter une activité
+      description: |
+        Passe l'activité de `pending` à `rejected`.
+        L'organisateur est notifié avec le motif du rejet.
+      operationId: adminRejectActivity
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/activityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  example: Description insuffisante et adresse non vérifiable.
+      responses:
+        '200':
+          description: Activité rejetée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ══════════════════════════════
+  # MESSAGING
+  # ══════════════════════════════
+
+  /messages:
+    post:
+      tags: [Messaging]
+      summary: Envoyer un message
+      description: |
+        Envoie un message à un autre utilisateur. La conversation est créée à la volée
+        si elle n'existe pas (une seule conversation par paire d'utilisateurs).
+        Équivalent REST de l'événement Socket.IO `message:send` : déclenche aussi la
+        diffusion temps réel `message:new` vers les deux participants.
+      operationId: sendMessage
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Message envoyé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Destinataire invalide (ex. envoi à soi-même)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: INVALID_RECIPIENT
+                message: Impossible de s'envoyer un message à soi-même.
+
+  /messages/conversations:
+    get:
+      tags: [Messaging]
+      summary: Lister ses conversations
+      description: |
+        Conversations de l'utilisateur connecté, triées par activité récente,
+        avec le dernier message et le nombre de messages non lus.
+      operationId: listConversations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Liste paginée des conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /messages/conversations/{conversationId}:
+    get:
+      tags: [Messaging]
+      summary: Historique d'une conversation
+      description: Messages paginés d'une conversation, du plus récent au plus ancien.
+      operationId: getMessages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Liste paginée des messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Messaging]
+      summary: Envoyer un message dans une conversation existante
+      description: |
+        Envoie un message vers une conversation existante (directe ou groupe).
+        L'utilisateur doit en être membre. Équivalent REST de `message:send-group` :
+        diffuse `message:new` à tous les participants.
+      operationId: sendToConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendToConversationRequest'
+      responses:
+        '201':
+          description: Message envoyé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /messages/conversations/{conversationId}/read:
+    post:
+      tags: [Messaging]
+      summary: Marquer une conversation comme lue
+      description: |
+        Marque comme lus tous les messages reçus non lus de la conversation, puis
+        notifie l'autre participant en temps réel (`conversation:read`).
+      operationId: markConversationRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Conversation marquée lue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversationId:
+                    type: string
+                    format: uuid
+                  updated:
+                    type: integer
+                    description: Nombre de messages passés à l'état lu
+                    example: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ══════════════════════════════
+  #  GROUPES
+  # ══════════════════════════════
+
+  /messages/groups:
+    post:
+      tags: [Messaging]
+      summary: Créer un groupe
+      description: |
+        Crée une conversation de groupe. Le créateur en devient administrateur ;
+        tous les membres invités doivent être ses amis. Notifie les membres
+        (`conversation:new`).
+      operationId: createGroup
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: Groupe créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: Membres invalides (non amis, ou aucun autre membre)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /messages/groups/{conversationId}:
+    patch:
+      tags: [Messaging]
+      summary: Renommer un groupe
+      description: Renomme un groupe (administrateur requis). Notifie les participants (`conversation:updated`).
+      operationId: renameGroup
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameGroupRequest'
+      responses:
+        '200':
+          description: Groupe renommé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /messages/groups/{conversationId}/members:
+    post:
+      tags: [Messaging]
+      summary: Ajouter un membre à un groupe
+      description: |
+        Ajoute un membre à un groupe (administrateur requis ; le nouveau membre
+        doit être ami de l'administrateur). Notifie le nouveau (`conversation:new`)
+        et les autres (`conversation:updated`).
+      operationId: addGroupMember
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberRequest'
+      responses:
+        '201':
+          description: Membre ajouté
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Déjà membre
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Utilisateur non ami
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /messages/groups/{conversationId}/members/{userId}:
+    delete:
+      tags: [Messaging]
+      summary: Retirer un membre ou quitter un groupe
+      description: |
+        Si `userId` est l'utilisateur courant, il quitte le groupe (un membre
+        restant est promu administrateur si besoin). Sinon, l'administrateur retire
+        le membre visé. Notifie les participants (`conversation:updated`).
+      operationId: removeGroupMember
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Membre retiré / groupe quitté
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ══════════════════════════════
+  #  AMIS
+  # ══════════════════════════════
+
+  /users/search:
+    get:
+      tags: [Friends]
+      summary: Rechercher des utilisateurs
+      description: Recherche d'utilisateurs actifs par pseudo (pour ajouter des amis). Exclut l'utilisateur courant.
+      operationId: searchUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 60 }
+      responses:
+        '200':
+          description: Utilisateurs correspondants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConversationParticipant'
+        '400':
+          description: Requête manquante
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /friends:
+    get:
+      tags: [Friends]
+      summary: Lister ses amis
+      operationId: listFriends
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Liste des amis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Friend'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /friends/requests:
+    get:
+      tags: [Friends]
+      summary: Lister ses demandes en attente
+      description: Demandes reçues (`incoming`) et envoyées (`outgoing`).
+      operationId: listFriendRequests
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Demandes en attente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FriendRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Friends]
+      summary: Envoyer une demande d'ami
+      description: Envoie une demande à un utilisateur et le notifie (`friend:request`).
+      operationId: sendFriendRequest
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendFriendRequestBody'
+      responses:
+        '201':
+          description: Demande créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendRequest'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Relation déjà existante (amis ou demande en attente)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Demande à soi-même
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /friends/requests/{id}/accept:
+    post:
+      tags: [Friends]
+      summary: Accepter une demande d'ami
+      description: Accepte une demande reçue et notifie le demandeur (`friend:accepted`).
+      operationId: acceptFriendRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Demande acceptée
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Demande déjà traitée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /friends/requests/{id}/decline:
+    post:
+      tags: [Friends]
+      summary: Refuser une demande d'ami
+      operationId: declineFriendRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Demande refusée
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /friends/{userId}:
+    delete:
+      tags: [Friends]
+      summary: Supprimer un ami
+      operationId: removeFriend
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Ami supprimé
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+

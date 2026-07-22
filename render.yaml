@@ -1,0 +1,72 @@
+services:
+  - type: web
+    name: myactivities-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    # Pas de buildTarget dans les Blueprints : le stage final du Dockerfile (prod) est construit par défaut
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: myactivities-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: myactivities-redis
+          type: redis
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: AUTH_RATE_LIMIT_MAX
+        value: 5
+      - key: AUTH_RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: CORS_ORIGIN
+        sync: false           # À renseigner : URL de l'app mobile en prod
+      # Base des liens dans les emails (pages /verify-email et /reset-password servies par ce backend)
+      - key: APP_URL
+        value: https://myactivities-backend.onrender.com
+      # Fournisseur d'email : smtp (relais) ou brevo-api (API HTTP + BREVO_API_KEY)
+      - key: EMAIL_PROVIDER
+        value: smtp
+      # SMTP (Brevo) — USER/PASS/FROM à renseigner dans le dashboard Render
+      - key: SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"        # 587 = STARTTLS
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false           # ex. MyActivities <adresse-validee-chez-brevo>
+
+
+  - type: redis
+    name: myactivities-redis
+    plan: free
+    region: frankfurt
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []           # accès interne uniquement
+
+databases:
+  - name: myactivities-db
+    databaseName: myactivities
+    user: myactivities
+    plan: free
+    region: frankfurt
