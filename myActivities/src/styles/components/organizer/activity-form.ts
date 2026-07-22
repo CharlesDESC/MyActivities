@@ -55,6 +55,17 @@ export const styles = StyleSheet.create({
 
   multiline: { minHeight: 96, textAlignVertical: 'top' },
 
+  scheduleSection: {
+    gap: Spacing.three,
+    padding: Spacing.three,
+    borderRadius: 12,
+  },
+  scheduleHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  scheduleHeaderText: { flex: 1, gap: Spacing.half },
+  calendarContainer: { width: '100%', maxWidth: 420, alignSelf: 'center' },
+  scheduleFields: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
+  scheduleField: { flex: 1, minWidth: 180 },
+
   rowFields: { flexDirection: 'row', gap: Spacing.three },
   flex: { flex: 1 },
 

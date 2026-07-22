@@ -7,6 +7,7 @@ import {
 } from '../types';
 import { ListActivitiesInput, CreateActivityInput, UpdateActivityInput } from '../schemas/activity';
 import { resolveOrganizerEstablishment } from './establishment.service';
+import { config } from '../config';
 
 const SORT_MAP: Record<string, string> = {
   distance: 'distance ASC',
@@ -136,12 +137,13 @@ export async function createActivity(
   try {
     await client.query('BEGIN');
 
+    const initialStatus: ActivityStatus = config.activities.moderationEnabled ? 'pending' : 'published';
     const { rows } = await client.query<Pick<ActivityRow, 'id'>>(
       `INSERT INTO activities
          (organizer_id, name, category, description, address, location,
           price_min, price_max, opening_hours, accessibility_pmr, accessibility_stroller,
-          website_url, establishment_id)
-       VALUES ($1, $2, $3, $4, $5, ST_MakePoint($6, $7)::geography, $8, $9, $10, $11, $12, $13, $14)
+          website_url, establishment_id, status)
+       VALUES ($1, $2, $3, $4, $5, ST_MakePoint($6, $7)::geography, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING id`,
       [
         organizerId, data.name, data.category, data.description, place.address,
@@ -152,6 +154,7 @@ export async function createActivity(
         data.accessibility?.stroller ?? false,
         data.websiteUrl ?? null,
         place.id,
+        initialStatus,
       ],
     );
 
@@ -163,6 +166,16 @@ export async function createActivity(
       await client.query(
         `INSERT INTO activity_photos (activity_id, url, position) VALUES ${photoValues}`,
         photoParams,
+      );
+    }
+
+    // Le premier créneau est créé dans la même transaction que l'activité :
+    // aucune activité incomplète ne subsiste si son créneau est invalide.
+    if (data.initialSlot) {
+      await client.query(
+        `INSERT INTO activity_slots (activity_id, starts_at, capacity)
+         VALUES ($1, $2, $3)`,
+        [activityId, data.initialSlot.startsAt, data.initialSlot.capacity],
       );
     }
 
@@ -211,7 +224,7 @@ export async function updateActivity(
 
   const keyFields: (keyof UpdateActivityInput)[] = ['name', 'category', 'description'];
   const touchedKey = keyFields.some((k) => data[k] !== undefined);
-  if (touchedKey && role !== 'admin') {
+  if (touchedKey && role !== 'admin' && config.activities.moderationEnabled) {
     fields.push(`status = 'pending'`);
   }
 

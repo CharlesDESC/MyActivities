@@ -17,6 +17,7 @@ export const styles = StyleSheet.create({
     paddingTop: Spacing.three,
     gap: Spacing.one,
   },
+  locationNotice: { paddingHorizontal: Spacing.four },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',

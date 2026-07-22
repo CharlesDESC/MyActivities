@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type { ActivityCategory } from '@/types/activity';
 import type { PlanningEntry } from '@/types/planning';
 
@@ -41,7 +41,7 @@ export function usePlanning() {
       const result = await api.get<{ data: RawEntry[] }>('/planning');
       setEntries(result.data.map(mapEntry));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
     } finally {
       setIsLoading(false);
     }
@@ -50,8 +50,14 @@ export function usePlanning() {
   useEffect(() => { fetchPlanning(); }, [fetchPlanning]);
 
   const removeEntry = useCallback(async (entryId: string) => {
-    await api.delete(`/planning/${entryId}`);
-    setEntries((prev) => prev.filter((e) => e.id !== entryId));
+    setError(null);
+    try {
+      await api.delete(`/planning/${entryId}`);
+      setEntries((prev) => prev.filter((e) => e.id !== entryId));
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Suppression impossible'));
+      throw err;
+    }
   }, []);
 
   const addToPlanning = useCallback(
@@ -59,8 +65,14 @@ export function usePlanning() {
       activityId: string,
       booking: { slotId: string } | { scheduledAt: string },
     ): Promise<void> => {
-      await api.post('/planning', { activityId, ...booking });
-      await fetchPlanning();
+      setError(null);
+      try {
+        await api.post('/planning', { activityId, ...booking });
+        await fetchPlanning();
+      } catch (err) {
+        setError(getApiErrorMessage(err, 'Ajout au planning impossible'));
+        throw err;
+      }
     },
     [fetchPlanning],
   );

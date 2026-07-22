@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 
 // Le web est l'espace organisateur : le SIRET y est requis (14 chiffres).
 const IS_WEB = Platform.OS === 'web';
@@ -88,7 +88,7 @@ export function useRegisterForm(): RegisterFormState {
       );
       setRegistered(true);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Une erreur est survenue';
+      const msg = getApiErrorMessage(err, 'Une erreur est survenue');
       setErrors({ global: msg });
     } finally {
       setIsSubmitting(false);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type { Establishment } from '@/types/establishment';
 
 export function useEstablishment() {
@@ -15,7 +15,7 @@ export function useEstablishment() {
       const response = await api.get<{ data: Establishment[] }>('/establishments');
       setEstablishment(response.data[0] ?? null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Impossible de charger l'établissement");
+      setError(getApiErrorMessage(err, "Impossible de charger l'établissement"));
     } finally {
       setIsLoading(false);
     }

@@ -123,7 +123,7 @@ describe('activity.service — createActivity', () => {
   const ownedEstablishment = { id: 'est-1', organizerId: 'org-1', address: '1 rue test', latitude: 48.85, longitude: 2.35 };
 
   it('creates activity and returns the full detail', async () => {
-    const detail = { ...mockActivity, id: 'act-new', name: data.name, status: 'pending', organizer: { id: 'org-1', pseudo: 'Org' }, photos: [] };
+    const detail = { ...mockActivity, id: 'act-new', name: data.name, status: 'published', organizer: { id: 'org-1', pseudo: 'Org' }, photos: [] };
     const mockClient = {
       query: jest.fn()
         .mockResolvedValueOnce({ rows: [] })                    // BEGIN
@@ -138,11 +138,12 @@ describe('activity.service — createActivity', () => {
 
     const result = await activityService.createActivity('org-1', data);
     expect(result.name).toBe('Escalade');
-    expect(result.status).toBe('pending');
+    expect(result.status).toBe('published');
     expect(result.organizer).toMatchObject({ id: 'org-1' });
     // L'adresse/position insérées proviennent bien de l'établissement.
     const insertParams = mockClient.query.mock.calls[1][1] as unknown[];
     expect(insertParams).toEqual(expect.arrayContaining(['1 rue test', 2.35, 48.85, 'est-1']));
+    expect(insertParams).toContain('published');
     expect(mockClient.release).toHaveBeenCalled();
   });
 
@@ -177,6 +178,29 @@ describe('activity.service — createActivity', () => {
       ['act-new', 'https://cdn.test/1.jpg', 0, 'act-new', 'https://cdn.test/2.jpg', 1],
     );
     expect(result.photos).toHaveLength(2);
+  });
+
+  it('creates the initial event slot in the activity transaction', async () => {
+    const detail = { ...mockActivity, id: 'act-new', photos: [] };
+    const initialSlot = { startsAt: '2099-08-15T08:30:00.000Z', capacity: 20 };
+    const mockClient = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ id: 'act-new' }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] }),
+      release: jest.fn(),
+    };
+    mockConnect.mockResolvedValue(mockClient);
+    mockQuery
+      .mockResolvedValueOnce({ rows: [ownedEstablishment] })
+      .mockResolvedValueOnce({ rows: [detail] });
+
+    await activityService.createActivity('org-1', { ...data, initialSlot });
+
+    expect(mockClient.query.mock.calls[2][0]).toContain('INSERT INTO activity_slots');
+    expect(mockClient.query.mock.calls[2][1]).toEqual(['act-new', initialSlot.startsAt, 20]);
+    expect(mockClient.query.mock.calls[3][0]).toBe('COMMIT');
   });
 
   it('rolls back and rethrows on error', async () => {
@@ -241,17 +265,16 @@ describe('activity.service — updateActivity', () => {
     expect(sql).toContain('price_max');
   });
 
-  it('resets status to pending when a key field is changed by a non-admin', async () => {
+  it('keeps a published activity published while moderation is disabled', async () => {
     mockQuery
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ organizer_id: 'user-1', status: 'published' }] })
       .mockResolvedValueOnce({ rows: [] })   // UPDATE
-      .mockResolvedValueOnce({ rows: [{ ...mockActivity, name: 'New Name', status: 'pending' }] }); // fetchActivityDetail
+      .mockResolvedValueOnce({ rows: [{ ...mockActivity, name: 'New Name', status: 'published' }] }); // fetchActivityDetail
 
     const result = await activityService.updateActivity('act-1', 'user-1', 'organizer', { name: 'New Name' });
-    // The UPDATE query should include status = 'pending'
     const updateCall = mockQuery.mock.calls[1][0] as string;
-    expect(updateCall).toContain("status = 'pending'");
-    expect(result.status).toBe('pending');
+    expect(updateCall).not.toContain("status = 'pending'");
+    expect(result.status).toBe('published');
   });
 });
 

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/context/auth';
 
 export function useReview(activityId: string, onSuccess?: () => void) {
@@ -17,7 +17,7 @@ export function useReview(activityId: string, onSuccess?: () => void) {
         await api.post(`/activities/${activityId}/reviews`, { rating });
         onSuccess?.();
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Erreur lors de la soumission');
+        setError(getApiErrorMessage(err, 'Erreur lors de la soumission'));
       } finally {
         setIsSubmitting(false);
       }

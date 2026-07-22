@@ -31,6 +31,7 @@ export type ActivityFormInput = {
   priceMax: number;
   accessibility?: { pmr: boolean; stroller: boolean };
   websiteUrl?: string | null;
+  initialSlot?: { startsAt: string; capacity: number };
 };
 
 export type ActivitySummary = {

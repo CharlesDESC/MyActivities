@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import { getRealtimeClient } from '@/lib/socket';
 import type { Conversation } from '@/types/message';
 
@@ -16,7 +16,7 @@ export function useConversations() {
       const result = await api.get<{ data: Conversation[] }>('/messages/conversations');
       setConversations(result.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
     } finally {
       setIsLoading(false);
     }

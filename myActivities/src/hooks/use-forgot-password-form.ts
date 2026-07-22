@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-import { api } from '@/lib/api';
+import { api, ApiError, getApiErrorMessage } from '@/lib/api';
 
 type Fields = { email: string };
 type Errors = Partial<Fields & { global: string }>;
@@ -39,12 +39,19 @@ export function useForgotPasswordForm(): ForgotPasswordFormState {
   const submit = useCallback(async () => {
     if (!validate()) return;
     setIsSubmitting(true);
+    setErrors((previous) => ({ ...previous, global: undefined }));
     try {
       await api.post('/auth/forgot-password', { email: values.email }, { skipAuth: true });
-    } catch {
-      // Anti-énumération OWASP : on affiche toujours le succès, même si l'email n'existe pas
-    } finally {
       setSent(true);
+    } catch (err) {
+      // Un éventuel 4xx reste volontairement indistinguable pour ne pas révéler
+      // l'existence d'un compte. Les pannes réseau/serveur sont en revanche affichées.
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        setSent(true);
+      } else {
+        setErrors({ global: getApiErrorMessage(err, "Impossible d'envoyer le lien") });
+      }
+    } finally {
       setIsSubmitting(false);
     }
   }, [values, validate]);

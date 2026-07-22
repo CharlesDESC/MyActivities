@@ -33,6 +33,21 @@ describe('CreateActivitySchema', () => {
   it('rejects priceMin greater than priceMax', () => {
     expect(() => CreateActivitySchema.parse({ ...validCreate, priceMin: 20, priceMax: 5 })).toThrow();
   });
+
+  it('accepts a future initial slot', () => {
+    const startsAt = new Date(Date.now() + 86_400_000).toISOString();
+    expect(() => CreateActivitySchema.parse({
+      ...validCreate,
+      initialSlot: { startsAt, capacity: 20 },
+    })).not.toThrow();
+  });
+
+  it('rejects a past initial slot', () => {
+    expect(() => CreateActivitySchema.parse({
+      ...validCreate,
+      initialSlot: { startsAt: '2020-01-01T10:00:00.000Z', capacity: 20 },
+    })).toThrow();
+  });
 });
 
 describe('UpdateActivitySchema', () => {

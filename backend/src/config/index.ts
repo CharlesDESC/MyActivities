@@ -40,6 +40,13 @@ export const config = {
     accessToken: process.env.MAPBOX_ACCESS_TOKEN ?? '',
   },
 
+  activities: {
+    // Temporairement désactivé tant que l'interface de modération admin n'est
+    // pas disponible. Passer cette variable à `true` réactive le workflow
+    // pending -> approved/rejected déjà présent côté backend.
+    moderationEnabled: process.env.ACTIVITY_MODERATION_ENABLED === 'true',
+  },
+
   // Stockage des photos d'activités. Fournisseur interchangeable (couche abstraite) :
   // 'local' (disque, MVP/dev) ou un futur adaptateur cloud (Cloudinary/S3) en prod.
   storage: {

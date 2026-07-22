@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useFriends } from '@/hooks/use-friends';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import type { Friend, FriendRequest } from '@/types/friend';
 
 jest.mock('@/lib/api', () => {
@@ -87,6 +87,15 @@ describe('useFriends', () => {
     await mountHook();
     await act(async () => { listeners['friend:request']({ requestId: 'req-x' }); });
     await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(4));
+  });
+
+  it('exposes a mutation error instead of creating an unhandled rejection', async () => {
+    mockPost.mockRejectedValue(new ApiError('Demande déjà envoyée', 409, 'REQUEST_EXISTS'));
+    const result = await mountHook();
+
+    await act(async () => { await result.current.sendRequest('user-9'); });
+
+    expect(result.current.error).toBe('Demande déjà envoyée (code : REQUEST_EXISTS)');
   });
 
   it('exposes an error message on failure', async () => {

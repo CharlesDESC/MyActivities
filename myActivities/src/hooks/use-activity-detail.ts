@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type { ActivityCategory, ActivityDetail } from '@/types/activity';
 import type { ReviewListResult } from '@/types/review';
 
@@ -72,7 +72,7 @@ export function useActivityDetail(id: string) {
       })
       .catch((err) => {
         if (!cancelled)
-          setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+          setError(getApiErrorMessage(err, 'Erreur de chargement'));
       })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 

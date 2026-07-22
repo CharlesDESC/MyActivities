@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type { ActivityDetail, ActivityStatus } from '@/types/activity';
 
 // Les DECIMAL PostgreSQL (prix, note) arrivent en chaînes → normalisation légère.
@@ -33,13 +34,17 @@ export function useOrganizerActivities(status?: ActivityStatus) {
       const result = await api.get<{ data: RawActivity[] }>(`/organizers/me/activities${query}`);
       setActivities(result.data.map(mapActivity));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
     } finally {
       setIsLoading(false);
     }
   }, [status]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  // Les écrans d'un onglet restent montés pendant la navigation. Une activité
+  // créée depuis le formulaire ne serait donc pas visible sans rechargement.
+  useFocusEffect(useCallback(() => {
+    refresh();
+  }, [refresh]));
 
   return { activities, isLoading, error, refresh };
 }

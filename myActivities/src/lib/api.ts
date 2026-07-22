@@ -15,6 +15,17 @@ export function setUnauthenticatedCallback(cb: () => void) {
 
 type RequestOptions = RequestInit & { skipAuth?: boolean };
 
+export type ApiErrorDetail = {
+  field: string;
+  message: string;
+};
+
+type ApiErrorPayload = {
+  message?: string;
+  code?: string;
+  details?: ApiErrorDetail[];
+};
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { skipAuth = false, headers: extraHeaders, ...fetchOptions } = options;
 
@@ -28,23 +39,37 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
-  console.log('[api] request ->', `${BASE_URL}${path}`);
-  const response = await fetch(`${BASE_URL}${path}`, { ...fetchOptions, headers }).catch((err) => {
-    console.log('[api] fetch threw ->', err);
-    throw err;
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, { ...fetchOptions, headers });
+  } catch {
+    throw new ApiError(
+      'Serveur injoignable. Vérifie ta connexion puis réessaie.',
+      0,
+      'NETWORK_ERROR',
+    );
+  }
 
   if (response.status === 401 && !skipAuth) {
     const refreshed = await tryRefreshToken();
     if (refreshed) return request<T>(path, options);
     onUnauthenticated?.();
-    throw new ApiError('Session expirée', 401);
+    throw new ApiError('Session expirée', 401, 'SESSION_EXPIRED');
   }
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({})) as { message?: string };
-    throw new ApiError(body.message ?? `Erreur ${response.status}`, response.status);
+    const body = await response.json().catch(() => ({})) as ApiErrorPayload;
+    throw new ApiError(
+      body.message ?? `Erreur ${response.status}`,
+      response.status,
+      body.code,
+      body.details,
+    );
   }
+
+  // DELETE et certains POST répondent légitimement sans corps. Tenter de lire
+  // du JSON sur un 204/205 transformait auparavant un succès en SyntaxError.
+  if (response.status === 204 || response.status === 205) return undefined as T;
 
   return response.json() as Promise<T>;
 }
@@ -77,11 +102,19 @@ async function tryRefreshToken(): Promise<boolean> {
 export class ApiError extends Error {
   constructor(
     message: string,
-    public readonly status: number
+    public readonly status: number,
+    public readonly code?: string,
+    public readonly details: ApiErrorDetail[] = [],
   ) {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/** Message homogène pour les écrans, avec le code métier renvoyé par l'API. */
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) return fallback;
+  return error.code ? `${error.message} (code : ${error.code})` : error.message;
 }
 
 export const api = {

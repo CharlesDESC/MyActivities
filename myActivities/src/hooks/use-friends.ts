@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import { getRealtimeClient } from '@/lib/socket';
 import type { Friend, FriendRequest } from '@/types/friend';
 
@@ -25,7 +25,7 @@ export function useFriends() {
       setFriends(f.data);
       setRequests(r.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
     } finally {
       setIsLoading(false);
     }
@@ -41,23 +41,43 @@ export function useFriends() {
   }, [refresh]);
 
   const sendRequest = useCallback(async (addresseeId: string) => {
-    await api.post('/friends/requests', { addresseeId });
-    await refresh();
+    setError(null);
+    try {
+      await api.post('/friends/requests', { addresseeId });
+      await refresh();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Impossible d'envoyer la demande"));
+    }
   }, [refresh]);
 
   const accept = useCallback(async (requestId: string) => {
-    await api.post(`/friends/requests/${requestId}/accept`);
-    await refresh();
+    setError(null);
+    try {
+      await api.post(`/friends/requests/${requestId}/accept`);
+      await refresh();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Impossible d'accepter la demande"));
+    }
   }, [refresh]);
 
   const decline = useCallback(async (requestId: string) => {
-    await api.post(`/friends/requests/${requestId}/decline`);
-    await refresh();
+    setError(null);
+    try {
+      await api.post(`/friends/requests/${requestId}/decline`);
+      await refresh();
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Impossible de refuser la demande'));
+    }
   }, [refresh]);
 
   const remove = useCallback(async (userId: string) => {
-    await api.delete(`/friends/${userId}`);
-    await refresh();
+    setError(null);
+    try {
+      await api.delete(`/friends/${userId}`);
+      await refresh();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Impossible de retirer l'ami"));
+    }
   }, [refresh]);
 
   const incoming = requests.filter((r) => r.direction === 'incoming');

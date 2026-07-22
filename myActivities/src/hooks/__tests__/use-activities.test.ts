@@ -34,6 +34,13 @@ beforeEach(() => {
 });
 
 describe('useNearbyActivities — requête', () => {
+  it('waits for a location before querying the backend', async () => {
+    const { result } = await renderHook(() => useNearbyActivities(null));
+
+    expect(result.current.isLoading).toBe(true);
+    expect(mockGet).not.toHaveBeenCalled();
+  });
+
   it('queries the backend with the centre and radius', async () => {
     await renderHook(() => useNearbyActivities(PARIS, 10));
 

@@ -39,11 +39,19 @@ type Props = {
   markedDates: Set<string>;
   selectedDate: string | null;
   onSelectDate: (dateKey: string) => void;
+  /** Autorise tous les jours à partir d'aujourd'hui (activité sans créneaux imposés). */
+  allowAnyFutureDate?: boolean;
 };
 
-export function Calendar({ markedDates, selectedDate, onSelectDate }: Props) {
+export function Calendar({
+  markedDates,
+  selectedDate,
+  onSelectDate,
+  allowAnyFutureDate = false,
+}: Props) {
   const theme = useTheme();
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const [month, setMonth] = useState(currentMonthStart);
 
@@ -95,7 +103,8 @@ export function Calendar({ markedDates, selectedDate, onSelectDate }: Props) {
             if (!date) return <View key={di} style={styles.dayCell} />;
 
             const key = toDateKey(date);
-            const selectable = markedDates.has(key);
+            const hasSlots = markedDates.has(key);
+            const selectable = date.getTime() >= today.getTime() && (allowAnyFutureDate || hasSlots);
             const isSelected = key === selectedDate;
 
             return (
@@ -104,7 +113,7 @@ export function Calendar({ markedDates, selectedDate, onSelectDate }: Props) {
                 disabled={!selectable}
                 onPress={() => onSelectDate(key)}
                 accessibilityRole="button"
-                accessibilityLabel={`${date.getDate()} ${MONTHS[date.getMonth()]}${selectable ? ', créneaux disponibles' : ''}`}
+                accessibilityLabel={`${date.getDate()} ${MONTHS[date.getMonth()]}${hasSlots ? ', créneaux disponibles' : selectable ? ', disponible' : ''}`}
                 accessibilityState={{ disabled: !selectable, selected: isSelected }}
                 style={[styles.dayCell, isSelected && { backgroundColor: theme.text }]}>
                 <ThemedText

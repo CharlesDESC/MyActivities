@@ -33,6 +33,27 @@ describe('Calendar', () => {
     expect(onSelectDate).toHaveBeenCalledWith(key);
   });
 
+  it('allows any future day for an activity without predefined slots', async () => {
+    const onSelectDate = jest.fn();
+    const next = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    await render(
+      <Calendar
+        markedDates={new Set()}
+        selectedDate={null}
+        onSelectDate={onSelectDate}
+        allowAnyFutureDate
+      />,
+    );
+
+    fireEvent.press(screen.getByText('›'));
+    await waitFor(() =>
+      expect(screen.getByText(`${MONTHS[next.getMonth()]} ${next.getFullYear()}`)).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByLabelText(`1 ${MONTHS[next.getMonth()]}, disponible`));
+
+    expect(onSelectDate).toHaveBeenCalledWith(toDateKey(next));
+  });
+
   it('navigates to the next month', async () => {
     await render(<Calendar markedDates={new Set()} selectedDate={null} onSelectDate={jest.fn()} />);
     const next = new Date(today.getFullYear(), today.getMonth() + 1, 1);

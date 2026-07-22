@@ -102,12 +102,18 @@ describe('api — verbes HTTP', () => {
 
 describe('api — gestion des erreurs', () => {
   it('throws an ApiError carrying the server message and status', async () => {
-    mockFetch.mockResolvedValue(jsonResponse({ message: 'Activité introuvable.' }, 404));
+    mockFetch.mockResolvedValue(jsonResponse({
+      message: 'Activité introuvable.',
+      code: 'NOT_FOUND',
+      details: [{ field: 'name', message: 'Nom invalide' }],
+    }, 404));
 
     await expect(api.get('/activities/unknown')).rejects.toMatchObject({
       name: 'ApiError',
       message: 'Activité introuvable.',
       status: 404,
+      code: 'NOT_FOUND',
+      details: [{ field: 'name', message: 'Nom invalide' }],
     });
   });
 
@@ -129,10 +135,22 @@ describe('api — gestion des erreurs', () => {
     await expect(api.get('/activities')).rejects.toThrow('Erreur 502');
   });
 
-  it('propagates network failures', async () => {
+  it('normalizes network failures', async () => {
     mockFetch.mockRejectedValue(new Error('Network request failed'));
 
-    await expect(api.get('/activities')).rejects.toThrow('Network request failed');
+    await expect(api.get('/activities')).rejects.toMatchObject({
+      status: 0,
+      code: 'NETWORK_ERROR',
+      message: 'Serveur injoignable. Vérifie ta connexion puis réessaie.',
+    });
+  });
+
+  it('accepts a successful 204 response without parsing JSON', async () => {
+    const json = jest.fn();
+    mockFetch.mockResolvedValue({ ok: true, status: 204, json });
+
+    await expect(api.delete('/planning/plan-1')).resolves.toBeUndefined();
+    expect(json).not.toHaveBeenCalled();
   });
 });
 

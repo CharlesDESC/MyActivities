@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type { Conversation } from '@/types/message';
 
 /** Crée une conversation de groupe (titre + membres amis choisis). */
@@ -14,7 +14,7 @@ export function useCreateGroup() {
     try {
       return await api.post<Conversation>('/messages/groups', { title: title.trim(), memberIds });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Création impossible');
+      setError(getApiErrorMessage(err, 'Création impossible'));
       throw err;
     } finally {
       setIsCreating(false);

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
 import { useAuth } from '@/context/auth';
-import { ApiError } from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/api';
 
 type Fields = { pseudo: string; password: string };
 type Errors = Partial<Fields & { global: string }>;
@@ -33,7 +33,7 @@ export function useLoginForm() {
     try {
       await login(values.pseudo, values.password);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Une erreur est survenue';
+      const msg = getApiErrorMessage(err, 'Une erreur est survenue');
       setErrors({ global: msg });
     } finally {
       setIsSubmitting(false);

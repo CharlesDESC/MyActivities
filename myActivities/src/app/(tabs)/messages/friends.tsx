@@ -31,8 +31,8 @@ function SegTab({ label, badge, active, onPress }: { label: string; badge?: numb
 export default function FriendsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { friends, incoming, outgoing, isLoading, refresh, sendRequest, accept, decline, remove } = useFriends();
-  const { query, setQuery, results, isSearching } = useUserSearch();
+  const { friends, incoming, outgoing, isLoading, error, refresh, sendRequest, accept, decline, remove } = useFriends();
+  const { query, setQuery, results, isSearching, error: searchError } = useUserSearch();
   const [tab, setTab] = useState<Tab>('friends');
 
   const friendIds = new Set(friends.map((f) => f.id));
@@ -60,6 +60,12 @@ export default function FriendsScreen() {
           <SegTab label="Demandes" badge={incoming.length} active={tab === 'requests'} onPress={() => setTab('requests')} />
           <SegTab label="Rechercher" active={tab === 'search'} onPress={() => setTab('search')} />
         </View>
+
+        {(error || searchError) && (
+          <ThemedText type="small" style={styles.error} accessibilityRole="alert">
+            {error || searchError}
+          </ThemedText>
+        )}
 
         {tab === 'search' && (
           <View style={styles.searchBox}>

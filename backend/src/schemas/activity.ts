@@ -9,6 +9,14 @@ const accessibilitySchema = z.object({
   stroller: z.boolean().default(false),
 });
 
+const initialSlotSchema = z.object({
+  startsAt: z.string().datetime().refine(
+    (value) => new Date(value) > new Date(),
+    { message: 'La date de l’événement doit être dans le futur' },
+  ),
+  capacity: z.number().int().min(1).max(10000),
+});
+
 export const ListActivitiesSchema = PaginationQuerySchema.extend({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
@@ -42,6 +50,7 @@ const activityFields = z.object({
 });
 
 export const CreateActivitySchema = activityFields
+  .extend({ initialSlot: initialSlotSchema.optional() })
   .refine(
     (d) => d.priceMin <= d.priceMax,
     { message: 'priceMin doit être inférieur ou égal à priceMax', path: ['priceMin'] },

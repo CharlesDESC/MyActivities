@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, getApiErrorMessage } from '@/lib/api';
+import { combineLocalDateAndTime } from '@/lib/scheduling';
 import type { ActivityCategory, ActivityDetail } from '@/types/activity';
 
 /** État du formulaire : les champs numériques sont saisis en texte, convertis à l'envoi. */
@@ -11,15 +12,41 @@ export type ActivityFormState = {
   priceMin: string;
   priceMax: string;
   websiteUrl: string;
+  eventDate: string;
+  eventTime: string;
+  capacity: string;
   pmr: boolean;
   stroller: boolean;
 };
 
 type FormErrors = Partial<Record<keyof ActivityFormState | 'global', string>>;
 
+const API_FIELD_TO_FORM_FIELD: Record<string, keyof ActivityFormState> = {
+  name: 'name',
+  category: 'category',
+  description: 'description',
+  priceMin: 'priceMin',
+  priceMax: 'priceMax',
+  websiteUrl: 'websiteUrl',
+  'initialSlot.startsAt': 'eventDate',
+  'initialSlot.capacity': 'capacity',
+  'accessibility.pmr': 'pmr',
+  'accessibility.stroller': 'stroller',
+};
+
+function errorsFromApi(error: ApiError): FormErrors {
+  const next: FormErrors = { global: getApiErrorMessage(error, 'Enregistrement impossible') };
+
+  for (const detail of error.details) {
+    const field = API_FIELD_TO_FORM_FIELD[detail.field];
+    if (field) next[field] = detail.message;
+  }
+  return next;
+}
+
 const EMPTY: ActivityFormState = {
   name: '', category: 'autre', description: '', priceMin: '', priceMax: '',
-  websiteUrl: '', pmr: false, stroller: false,
+  websiteUrl: '', eventDate: '', eventTime: '', capacity: '20', pmr: false, stroller: false,
 };
 
 function fromActivity(a: ActivityDetail): ActivityFormState {
@@ -30,6 +57,9 @@ function fromActivity(a: ActivityDetail): ActivityFormState {
     priceMin: String(a.priceMin),
     priceMax: String(a.priceMax),
     websiteUrl: a.websiteUrl ?? '',
+    eventDate: '',
+    eventTime: '',
+    capacity: '20',
     pmr: a.accessibilityPmr,
     stroller: a.accessibilityStroller,
   };
@@ -65,14 +95,33 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
     if (values.priceMax === '' || Number.isNaN(max) || max < 0) next.priceMax = 'Prix invalide';
     if (!next.priceMin && !next.priceMax && min > max) next.priceMin = 'Le prix min doit être ≤ au prix max';
 
+    if (!activityId) {
+      const startsAt = combineLocalDateAndTime(values.eventDate, values.eventTime);
+      const capacity = Number(values.capacity);
+      if (!values.eventDate) next.eventDate = 'Choisis la date de l’événement';
+      if (!values.eventTime) next.eventTime = 'Choisis une heure';
+      if (startsAt && new Date(startsAt).getTime() <= Date.now()) {
+        next.eventDate = 'Le créneau doit être dans le futur';
+      }
+      if (!startsAt && values.eventDate && values.eventTime) {
+        next.eventDate = 'Date ou heure invalide';
+      }
+      if (!Number.isInteger(capacity) || capacity < 1 || capacity > 10000) {
+        next.capacity = 'Entre 1 et 10 000 places';
+      }
+    }
+
     setErrors(next);
     return Object.keys(next).length === 0;
-  }, [values]);
+  }, [activityId, values]);
 
   const submit = useCallback(async (): Promise<ActivityDetail | null> => {
     if (!validate()) return null;
     setIsSubmitting(true);
     setErrors((prev) => ({ ...prev, global: undefined }));
+    const startsAt = !activityId
+      ? combineLocalDateAndTime(values.eventDate, values.eventTime)
+      : null;
     const payload = {
       name: values.name.trim(),
       category: values.category,
@@ -81,13 +130,21 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
       priceMax: Number(values.priceMax),
       accessibility: { pmr: values.pmr, stroller: values.stroller },
       websiteUrl: values.websiteUrl.trim() || null,
+      ...(!activityId && startsAt
+        ? { initialSlot: { startsAt, capacity: Number(values.capacity) } }
+        : {}),
     };
     try {
       return activityId
         ? await api.patch<ActivityDetail>(`/activities/${activityId}`, payload)
         : await api.post<ActivityDetail>('/activities', payload);
     } catch (err) {
-      setErrors((prev) => ({ ...prev, global: err instanceof ApiError ? err.message : 'Enregistrement impossible' }));
+      setErrors((prev) => ({
+        ...prev,
+        ...(err instanceof ApiError
+          ? errorsFromApi(err)
+          : { global: 'Serveur injoignable. Vérifie ta connexion puis réessaie.' }),
+      }));
       throw err;
     } finally {
       setIsSubmitting(false);

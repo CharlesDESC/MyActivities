@@ -38,6 +38,9 @@ services:
         sync: false           # À renseigner : URL de l'app mobile en prod
       - key: MAPBOX_ACCESS_TOKEN
         sync: false           # Token serveur pour le Geocoding permanent
+      # Contournement MVP : publication immédiate jusqu'à la livraison de l'interface admin.
+      - key: ACTIVITY_MODERATION_ENABLED
+        value: "false"
       # Base des liens dans les emails (pages /verify-email et /reset-password servies par ce backend)
       - key: APP_URL
         value: https://myactivities-backend.onrender.com

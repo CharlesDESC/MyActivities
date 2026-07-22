@@ -214,6 +214,22 @@ describe('POST /v1/activities', () => {
     expect(res.body.id).toBe('act-new');
   });
 
+  it('accepts and forwards an initial event slot', async () => {
+    mock.createActivity.mockResolvedValue({ id: 'act-new', name: 'Bowling Night' } as any);
+    const body = {
+      ...validBody,
+      initialSlot: { startsAt: '2099-08-15T08:30:00.000Z', capacity: 20 },
+    };
+
+    const res = await request(app)
+      .post('/v1/activities')
+      .set('Authorization', `Bearer ${organizerToken}`)
+      .send(body);
+
+    expect(res.status).toBe(201);
+    expect(mock.createActivity).toHaveBeenCalledWith('org-1', body);
+  });
+
   it('returns 201 for admin with valid body', async () => {
     mock.createActivity.mockResolvedValue({
       id: 'act-new2', name: 'Bowling Night', category: 'sport', status: 'pending', created_at: new Date(),

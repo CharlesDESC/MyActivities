@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, getApiErrorMessage } from '@/lib/api';
 import { getRealtimeClient } from '@/lib/socket';
 import type { Message } from '@/types/message';
 
@@ -40,7 +40,7 @@ export function useChat({ conversationId: initialId, recipientId }: UseChatParam
         const result = await api.get<{ data: Message[] }>(`/messages/conversations/${initialId}`);
         if (active) setMessages(mergeMessages([], result.data));
       } catch (err) {
-        if (active) setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+        if (active) setError(getApiErrorMessage(err, 'Erreur de chargement'));
       } finally {
         if (active) setIsLoading(false);
       }
@@ -91,7 +91,7 @@ export function useChat({ conversationId: initialId, recipientId }: UseChatParam
       setMessages((prev) => mergeMessages(prev, [message]));
       return message;
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible');
+      setError(getApiErrorMessage(err, 'Envoi impossible'));
       throw err;
     } finally {
       setIsSending(false);
@@ -105,7 +105,11 @@ export function useChat({ conversationId: initialId, recipientId }: UseChatParam
     try {
       await client.markRead(id);
     } catch {
-      try { await api.post(`/messages/conversations/${id}/read`); } catch { /* best-effort */ }
+      try {
+        await api.post(`/messages/conversations/${id}/read`);
+      } catch (err) {
+        setError(getApiErrorMessage(err, 'Impossible de marquer la conversation comme lue'));
+      }
     }
   }, []);
 

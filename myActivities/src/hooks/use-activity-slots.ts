@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type { ActivitySlot } from '@/types/activity';
 
 export function useActivitySlots(activityId: string) {
@@ -14,7 +14,7 @@ export function useActivitySlots(activityId: string) {
       const result = await api.get<{ data: ActivitySlot[] }>(`/activities/${activityId}/slots`);
       setSlots(result.data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
     } finally {
       setIsLoading(false);
     }

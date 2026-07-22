@@ -22,7 +22,13 @@ export default function PlanningScreen() {
         {
           text: 'Supprimer',
           style: 'destructive',
-          onPress: () => removeEntry(entry.id),
+          onPress: async () => {
+            try {
+              await removeEntry(entry.id);
+            } catch {
+              // Le hook conserve et affiche le message API normalisé.
+            }
+          },
         },
       ],
     );

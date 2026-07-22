@@ -68,7 +68,7 @@ export default function MyActivitiesScreen() {
                     <Icon name="inbox" size={44} themeColor="textSecondary" />
                     <ThemedText type="smallBold">Aucune activité</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
-                      Crée ta première activité — elle sera validée par un administrateur avant publication.
+                      Crée ta première activité pour la publier immédiatement.
                     </ThemedText>
                   </View>
                 }

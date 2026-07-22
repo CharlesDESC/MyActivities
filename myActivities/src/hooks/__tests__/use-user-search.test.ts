@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useUserSearch } from '@/hooks/use-user-search';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 jest.mock('@/lib/api', () => {
   const actual = jest.requireActual('@/lib/api');
@@ -57,5 +57,14 @@ describe('useUserSearch', () => {
 
     expect(mockGet).toHaveBeenCalledTimes(1);
     expect(mockGet).toHaveBeenCalledWith('/users/search?q=bob');
+  });
+
+  it('exposes the backend error code when search fails', async () => {
+    mockGet.mockRejectedValue(new ApiError('Accès refusé', 403, 'FORBIDDEN'));
+    const { result } = await renderHook(() => useUserSearch());
+    await type(result, 'bob');
+
+    expect(result.current.results).toEqual([]);
+    expect(result.current.error).toBe('Accès refusé (code : FORBIDDEN)');
   });
 });

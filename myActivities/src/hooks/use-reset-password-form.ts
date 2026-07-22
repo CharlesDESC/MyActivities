@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 
 type Fields = { password: string; confirmPassword: string };
 type Errors = Partial<Fields & { global: string }>;
@@ -53,7 +53,7 @@ export function useResetPasswordForm(): ResetPasswordFormState {
         );
         setDone(true);
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : 'Une erreur est survenue';
+        const msg = getApiErrorMessage(err, 'Une erreur est survenue');
         setErrors({ global: msg });
       } finally {
         setIsSubmitting(false);

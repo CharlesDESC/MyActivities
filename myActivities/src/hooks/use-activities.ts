@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type { ActivityCategory, ActivitySummary } from '@/types/activity';
 
 // Réponse de GET /v1/activities — les DECIMAL PostgreSQL arrivent en chaînes
@@ -42,7 +43,7 @@ function mapItem(r: RawListItem): ActivitySummary {
 }
 
 export function useNearbyActivities(
-  center: { latitude: number; longitude: number },
+  center: { latitude: number; longitude: number } | null,
   radiusKm = 50,
 ) {
   const [activities, setActivities] = useState<ActivitySummary[]>([]);
@@ -50,6 +51,8 @@ export function useNearbyActivities(
   const [error, setError] = useState<string | null>(null);
 
   const fetchActivities = useCallback(async () => {
+    if (!center) return;
+    setIsLoading(true);
     try {
       setError(null);
       const result = await api.get<RawList>(
@@ -57,15 +60,17 @@ export function useNearbyActivities(
       );
       setActivities(result.data.map(mapItem));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
     } finally {
       setIsLoading(false);
     }
-  }, [center.latitude, center.longitude, radiusKm]);
+  }, [center, radiusKm]);
 
-  useEffect(() => {
-    fetchActivities();
-  }, [fetchActivities]);
+  // Recharge aussi quand l'utilisateur revient sur l'onglet après qu'une
+  // nouvelle activité a été publiée depuis le back-office.
+  useFocusEffect(useCallback(() => {
+    void fetchActivities();
+  }, [fetchActivities]));
 
   return { activities, isLoading, error, refetch: fetchActivities };
 }

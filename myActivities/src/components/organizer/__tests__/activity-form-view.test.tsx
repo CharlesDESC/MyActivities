@@ -17,6 +17,11 @@ jest.mock('@/components/web/web-container', () => ({
   WebContainer: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+// Le calendrier et le sélecteur natif ont leurs propres tests. Les neutraliser
+// ici garde ce test centré sur l'orchestration du formulaire et évite un rendu coûteux.
+jest.mock('@/components/ui/calendar', () => ({ Calendar: () => null }));
+jest.mock('@/components/ui/time-picker', () => ({ TimePicker: () => null }));
+
 jest.mock('@/hooks/use-theme', () => ({
   useTheme: () => ({ textSecondary: '#666666' }),
 }));
@@ -45,6 +50,9 @@ const VALUES: ActivityFormState = {
   priceMin: '15',
   priceMax: '30',
   websiteUrl: '',
+  eventDate: '2099-08-15',
+  eventTime: '10:30',
+  capacity: '20',
   pmr: false,
   stroller: true,
 };
@@ -120,6 +128,15 @@ describe('ActivityFormView', () => {
 
   it('stays on the form when submission fails', async () => {
     mockSubmit.mockRejectedValue(new Error('offline'));
+    await render(<ActivityFormView />);
+    await fireEvent.press(screen.getByText('Créer l’activité'));
+
+    await waitFor(() => expect(mockSubmit).toHaveBeenCalledTimes(1));
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('stays on the form when local validation prevents submission', async () => {
+    mockSubmit.mockResolvedValue(null);
     await render(<ActivityFormView />);
     await fireEvent.press(screen.getByText('Créer l’activité'));
 

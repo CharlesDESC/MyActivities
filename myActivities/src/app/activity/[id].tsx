@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator, Alert, Pressable,
-  ScrollView, TextInput, View,
+  ScrollView, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,12 +10,14 @@ import { styles } from '@/styles/app/activity-detail';
 import { Button } from '@/components/ui/button';
 import { Calendar, toDateKey } from '@/components/ui/calendar';
 import { StarRating } from '@/components/ui/star-rating';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Icon } from '@/components/ui/icon';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
-import { ApiError } from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/api';
+import { combineLocalDateAndTime } from '@/lib/scheduling';
 import { useActivityDetail } from '@/hooks/use-activity-detail';
 import { useActivitySlots } from '@/hooks/use-activity-slots';
 import { usePlanning } from '@/hooks/use-planning';
@@ -53,8 +55,8 @@ export default function ActivityDetailScreen() {
   const { addToPlanning } = usePlanning();
 
   const [showPlanningForm, setShowPlanningForm] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState('');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [planningLoading, setPlanningLoading] = useState(false);
 
@@ -107,8 +109,8 @@ export default function ActivityDetailScreen() {
 
   function closePlanningForm() {
     setShowPlanningForm(false);
-    setScheduledAt('');
     setSelectedDate(null);
+    setSelectedTime(null);
     setSelectedSlotId(null);
   }
 
@@ -117,15 +119,24 @@ export default function ActivityDetailScreen() {
       Alert.alert('Créneau requis', 'Choisis un jour dans le calendrier, puis un créneau.');
       return;
     }
-    if (!hasSlots && !scheduledAt.trim()) {
-      Alert.alert('Date requise', 'Saisis une date au format YYYY-MM-DDTHH:MM:SSZ');
+    if (!hasSlots && (!selectedDate || !selectedTime)) {
+      Alert.alert('Créneau requis', 'Choisis une date puis une heure.');
       return;
     }
+
+    const scheduledAt = !hasSlots
+      ? combineLocalDateAndTime(selectedDate!, selectedTime!)
+      : null;
+    if (!hasSlots && (!scheduledAt || new Date(scheduledAt).getTime() <= Date.now())) {
+      Alert.alert('Créneau invalide', 'Choisis une date et une heure dans le futur.');
+      return;
+    }
+
     setPlanningLoading(true);
     try {
       await addToPlanning(
         activity!.id,
-        hasSlots ? { slotId: selectedSlotId! } : { scheduledAt: scheduledAt.trim() },
+        hasSlots ? { slotId: selectedSlotId! } : { scheduledAt: scheduledAt! },
       );
       closePlanningForm();
       await refetchSlots();
@@ -134,7 +145,7 @@ export default function ActivityDetailScreen() {
         : 'Activité ajoutée à ton planning.');
     } catch (err) {
       // Messages API explicites : créneau complet, déjà réservé…
-      Alert.alert('Erreur', err instanceof ApiError ? err.message : 'Impossible d\'ajouter au planning.');
+      Alert.alert('Erreur', getApiErrorMessage(err, 'Impossible d\'ajouter au planning.'));
       await refetchSlots();
     } finally {
       setPlanningLoading(false);
@@ -337,25 +348,27 @@ export default function ActivityDetailScreen() {
                       </>
                     ) : (
                       <>
-                        <ThemedText type="smallBold">Choisir une date</ThemedText>
+                        <ThemedText type="smallBold">Choisir un créneau</ThemedText>
                         <ThemedText type="small" themeColor="textSecondary">
                           Activité en accès libre — indique quand tu prévois d&apos;y aller :
                         </ThemedText>
-                        <TextInput
-                          placeholder="2026-08-15T10:00:00Z"
-                          placeholderTextColor={theme.textSecondary}
-                          value={scheduledAt}
-                          onChangeText={setScheduledAt}
-                          style={{
-                            backgroundColor: theme.backgroundSelected,
-                            color: theme.text,
-                            borderRadius: Spacing.one,
-                            paddingHorizontal: Spacing.three,
-                            paddingVertical: Spacing.two,
-                            fontSize: 14,
+                        <Calendar
+                          markedDates={markedDates}
+                          selectedDate={selectedDate}
+                          allowAnyFutureDate
+                          onSelectDate={(date) => {
+                            setSelectedDate(date);
+                            setSelectedTime(null);
                           }}
-                          autoCapitalize="none"
                         />
+                        {selectedDate && (
+                          <>
+                            <ThemedText type="smallBold" style={{ textTransform: 'capitalize' }}>
+                              {formatDayLabel(selectedDate)}
+                            </ThemedText>
+                            <TimePicker value={selectedTime} onChange={setSelectedTime} />
+                          </>
+                        )}
                       </>
                     )}
                     <View style={styles.ctaRow}>
@@ -369,7 +382,7 @@ export default function ActivityDetailScreen() {
                         label="Réserver"
                         style={{ flex: 1 }}
                         loading={planningLoading}
-                        disabled={hasSlots ? !selectedSlotId : !scheduledAt.trim()}
+                        disabled={hasSlots ? !selectedSlotId : !selectedDate || !selectedTime}
                         onPress={handleAddToPlanning}
                       />
                     </View>

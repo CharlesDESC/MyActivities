@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useActivityForm, type ActivityFormState } from '@/hooks/use-activity-form';
 import { api, ApiError } from '@/lib/api';
+import { combineLocalDateAndTime } from '@/lib/scheduling';
 import type { ActivityDetail } from '@/types/activity';
 
 jest.mock('@/lib/api', () => {
@@ -43,6 +44,9 @@ const VALID: ActivityFormState = {
   priceMin: '15',
   priceMax: '30',
   websiteUrl: '',
+  eventDate: '2099-08-15',
+  eventTime: '10:30',
+  capacity: '20',
   pmr: true,
   stroller: false,
 };
@@ -170,6 +174,10 @@ describe('useActivityForm — enregistrement', () => {
       priceMax: 30,
       accessibility: { pmr: true, stroller: false },
       websiteUrl: null,
+      initialSlot: {
+        startsAt: combineLocalDateAndTime('2099-08-15', '10:30'),
+        capacity: 20,
+      },
     });
     expect(result.current.isSubmitting).toBe(false);
   });
@@ -181,6 +189,20 @@ describe('useActivityForm — enregistrement', () => {
     await act(async () => { await result.current.submit(); });
 
     expect(mockPost.mock.calls[0][1].websiteUrl).toBe('https://example.com');
+  });
+
+  it('rejects a creation without an event date, time or valid capacity', async () => {
+    const { result } = await renderHook(() => useActivityForm());
+    await fillForm(result, { eventDate: '', eventTime: '', capacity: '0' });
+
+    await act(async () => { await result.current.submit(); });
+
+    expect(result.current.errors).toMatchObject({
+      eventDate: expect.any(String),
+      eventTime: expect.any(String),
+      capacity: expect.any(String),
+    });
+    expect(mockPost).not.toHaveBeenCalled();
   });
 
   it('patches the activity in edit mode', async () => {
@@ -213,6 +235,25 @@ describe('useActivityForm — enregistrement', () => {
     expect(result.current.isSubmitting).toBe(false);
   });
 
+  it('exposes the backend error code and maps validation details to fields', async () => {
+    const failure = new ApiError(
+      'Données invalides.',
+      400,
+      'VALIDATION_ERROR',
+      [{ field: 'priceMin', message: 'Le prix minimum est invalide.' }],
+    );
+    mockPost.mockRejectedValue(failure);
+    const { result } = await renderHook(() => useActivityForm());
+    await fillForm(result);
+
+    await act(async () => {
+      await result.current.submit().catch(() => undefined);
+    });
+
+    expect(result.current.errors.global).toBe('Données invalides. (code : VALIDATION_ERROR)');
+    expect(result.current.errors.priceMin).toBe('Le prix minimum est invalide.');
+  });
+
   it('uses a generic message for an unexpected failure', async () => {
     const failure = new Error('offline');
     mockPost.mockRejectedValue(failure);
@@ -229,6 +270,6 @@ describe('useActivityForm — enregistrement', () => {
     });
 
     expect(caught).toBe(failure);
-    expect(result.current.errors.global).toBe('Enregistrement impossible');
+    expect(result.current.errors.global).toBe('Serveur injoignable. Vérifie ta connexion puis réessaie.');
   });
 });

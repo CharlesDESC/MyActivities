@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type { OrganizerStat } from '@/types/activity';
 
 // PostgreSQL renvoie COUNT()/DECIMAL en chaînes : on normalise en nombres.
@@ -37,7 +37,7 @@ export function useOrganizerStats() {
       const result = await api.get<{ data: RawStat[] }>('/organizers/me/stats');
       setStats(result.data.map(mapStat));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erreur de chargement');
+      setError(getApiErrorMessage(err, 'Erreur de chargement'));
     } finally {
       setIsLoading(false);
     }

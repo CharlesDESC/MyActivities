@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { api, ApiError } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
 import type {
   AddressSuggestion,
   Establishment,
@@ -86,7 +86,7 @@ export function useEstablishmentForm(initial: Establishment | null) {
     } catch (err) {
       setErrors((previous) => ({
         ...previous,
-        global: err instanceof ApiError ? err.message : "Impossible de rechercher l'adresse",
+        global: getApiErrorMessage(err, "Impossible de rechercher l'adresse"),
       }));
     } finally {
       setIsSearching(false);
@@ -131,7 +131,7 @@ export function useEstablishmentForm(initial: Establishment | null) {
     } catch (err) {
       setErrors((previous) => ({
         ...previous,
-        global: err instanceof ApiError ? err.message : "Impossible d'enregistrer l'établissement",
+        global: getApiErrorMessage(err, "Impossible d'enregistrer l'établissement"),
       }));
       throw err;
     } finally {

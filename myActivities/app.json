@@ -40,7 +40,14 @@
       "expo-image",
       "expo-status-bar",
       "expo-web-browser",
-      "@rnmapbox/maps"
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MyActivities utilise votre position pour afficher les activités disponibles autour de vous."
+        }
+      ],
+      "@rnmapbox/maps",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

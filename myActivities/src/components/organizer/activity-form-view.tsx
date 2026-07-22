@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -6,8 +7,10 @@ import { styles } from '@/styles/components/organizer/activity-form';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
+import { TimePicker } from '@/components/ui/time-picker';
 import { WebContainer } from '@/components/web/web-container';
 import { OrganizerOnly } from '@/components/organizer/organizer-only';
 import { useTheme } from '@/hooks/use-theme';
@@ -16,6 +19,7 @@ import { useEstablishment } from '@/hooks/use-establishment';
 import { CATEGORY_CONFIG, type ActivityCategory, type ActivityDetail } from '@/types/activity';
 
 const CATEGORIES = Object.keys(CATEGORY_CONFIG) as ActivityCategory[];
+const NO_MARKED_DATES = new Set<string>();
 
 export function ActivityFormView({
   activityId,
@@ -27,16 +31,25 @@ export function ActivityFormView({
   loading?: boolean;
 }) {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   const theme = useTheme();
   const { establishment, isLoading: establishmentLoading, error: establishmentError } = useEstablishment();
   const { values, errors, isSubmitting, isEditing, setField, submit } = useActivityForm({ activityId, initial });
 
   async function handleSubmit() {
     try {
-      await submit();
+      const savedActivity = await submit();
+      // Une validation locale invalide renvoie `null` : aucune requête n'est
+      // partie et il ne faut surtout pas faire croire à une création réussie.
+      if (!savedActivity) {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        return;
+      }
+      // Cette navigation n'arrive qu'après la résolution du POST/PATCH.
       router.replace('/my-activities');
     } catch {
-      /* erreur exposée via errors.global */
+      // L'erreur détaillée est exposée par le hook ; on la rend immédiatement visible.
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: true }));
     }
   }
 
@@ -70,9 +83,9 @@ export function ActivityFormView({
                 <Button label="Créer mon établissement" onPress={() => router.replace('/establishment' as never)} />
               </ThemedView>
             ) : (
-              <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+              <ScrollView ref={scrollRef} contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
                 {errors.global && (
-                  <ThemedView type="backgroundElement" style={styles.globalError}>
+                  <ThemedView type="backgroundElement" style={styles.globalError} accessibilityRole="alert">
                     <ThemedText type="small" style={styles.errorText}>{errors.global}</ThemedText>
                   </ThemedView>
                 )}
@@ -108,6 +121,58 @@ export function ActivityFormView({
                 <Input label="Description" placeholder="Au moins 20 caractères" value={values.description}
                   onChangeText={(v) => setField('description', v)} error={errors.description}
                   multiline numberOfLines={4} style={styles.multiline} autoCapitalize="sentences" />
+
+                {!isEditing && (
+                  <ThemedView type="backgroundElement" style={styles.scheduleSection}>
+                    <View style={styles.scheduleHeader}>
+                      <Icon name="event" size={22} themeColor="textSecondary" />
+                      <View style={styles.scheduleHeaderText}>
+                        <ThemedText type="smallBold">Date de l’événement</ThemedText>
+                        <ThemedText type="small" themeColor="textSecondary">
+                          Ce créneau sera proposé aux participants.
+                        </ThemedText>
+                      </View>
+                    </View>
+                    <View style={styles.calendarContainer}>
+                      <Calendar
+                        markedDates={NO_MARKED_DATES}
+                        selectedDate={values.eventDate || null}
+                        allowAnyFutureDate
+                        onSelectDate={(date) => setField('eventDate', date)}
+                      />
+                    </View>
+                    {errors.eventDate && (
+                      <ThemedText type="small" style={styles.errorText} accessibilityRole="alert">
+                        {errors.eventDate}
+                      </ThemedText>
+                    )}
+                    {values.eventDate && (
+                      <View style={styles.scheduleFields}>
+                        <View style={styles.scheduleField}>
+                          <ThemedText type="smallBold">Heure</ThemedText>
+                          <TimePicker
+                            value={values.eventTime || null}
+                            onChange={(time) => setField('eventTime', time)}
+                          />
+                          {errors.eventTime && (
+                            <ThemedText type="small" style={styles.errorText} accessibilityRole="alert">
+                              {errors.eventTime}
+                            </ThemedText>
+                          )}
+                        </View>
+                        <Input
+                          label="Nombre de places"
+                          placeholder="20"
+                          value={values.capacity}
+                          onChangeText={(value) => setField('capacity', value)}
+                          error={errors.capacity}
+                          keyboardType="number-pad"
+                          style={styles.scheduleField}
+                        />
+                      </View>
+                    )}
+                  </ThemedView>
+                )}
 
                 <View style={styles.rowFields}>
                   <Input label="Prix min (€)" placeholder="0" value={values.priceMin}

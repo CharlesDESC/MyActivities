@@ -98,13 +98,14 @@ describe('useForgotPasswordForm — envoi', () => {
     expect(result.current.errors.global).toBeUndefined();
   });
 
-  it('stays silent on a network failure too', async () => {
+  it('shows a network failure instead of claiming the email was sent', async () => {
     mockPost.mockRejectedValue(new Error('offline'));
     const { result, submit } = await mountValid();
 
     await submit();
 
-    expect(result.current.sent).toBe(true);
+    expect(result.current.sent).toBe(false);
+    expect(result.current.errors.global).toBe("Impossible d'envoyer le lien");
   });
 });
 

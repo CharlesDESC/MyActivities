@@ -12,12 +12,9 @@ import { Icon } from '@/components/ui/icon';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useNearbyActivities } from '@/hooks/use-activities';
+import { useUserLocation } from '@/hooks/use-user-location';
 import { useTheme } from '@/hooks/use-theme';
 import { CATEGORY_CONFIG, type ActivityCategory } from '@/types/activity';
-
-// Position simulée — Lyon centre
-// TODO: remplacer par la position réelle (expo-location) après consentement RGPD
-const LYON_CENTER = { latitude: 45.764, longitude: 4.8357 };
 
 const CATEGORIES: ActivityCategory[] = [
   'sport', 'culture', 'gastronomie', 'nature', 'bien_etre', 'art', 'musique',
@@ -35,7 +32,14 @@ export default function HomeScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ActivityCategory | null>(null);
-  const { activities, isLoading, error } = useNearbyActivities(LYON_CENTER);
+  const location = useUserLocation();
+  const refreshLocation = location.refresh;
+  const { activities, isLoading, error, refetch } = useNearbyActivities(location.position);
+
+  const refreshNearby = useCallback(async () => {
+    await refreshLocation();
+    await refetch();
+  }, [refreshLocation, refetch]);
 
   const filtered = useMemo(() => {
     let list = activities;
@@ -63,6 +67,8 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <FlatList
           data={filtered}
+          refreshing={isLoading || location.isLocating}
+          onRefresh={refreshNearby}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ActivityCard
@@ -87,6 +93,12 @@ export default function HomeScreen() {
                   {"Que veux-tu faire aujourd'hui ?"}
                 </ThemedText>
               </View>
+
+              {location.message && (
+                <ThemedText type="small" themeColor="textSecondary" style={styles.locationNotice}>
+                  {location.message}
+                </ThemedText>
+              )}
 
               {/* Search bar */}
               <View style={[styles.searchBar, { backgroundColor: theme.backgroundElement }]}>
@@ -164,7 +176,7 @@ export default function HomeScreen() {
             </View>
           }
           ListEmptyComponent={
-            isLoading ? (
+            isLoading || location.isLocating ? (
               <View style={styles.empty}>
                 <ActivityIndicator size="large" />
               </View>
@@ -191,4 +203,3 @@ export default function HomeScreen() {
     </ThemedView>
   );
 }
-

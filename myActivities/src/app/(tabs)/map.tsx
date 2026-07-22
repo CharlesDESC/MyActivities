@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -9,19 +10,24 @@ import { Icon } from '@/components/ui/icon';
 import { ThemedView } from '@/components/ui/themed-view';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useNearbyActivities } from '@/hooks/use-activities';
+import { FALLBACK_POSITION, useUserLocation } from '@/hooks/use-user-location';
 import { getMapProvider, type MapMarker, type MapPosition } from '@/lib/map';
 import { CATEGORY_CONFIG } from '@/types/activity';
-
-// Position simulée — Lyon centre
-// TODO: remplacer par la position réelle (expo-location) après consentement RGPD
-const LYON_CENTER: MapPosition = { latitude: 45.764, longitude: 4.8357 };
 
 // Résolu une seule fois : le composant carte reste stable entre les rendus
 const { MapView } = getMapProvider();
 
 export default function MapScreen() {
   const router = useRouter();
-  const { activities, isLoading, error } = useNearbyActivities(LYON_CENTER);
+  const location = useUserLocation();
+  const refreshLocation = location.refresh;
+  const center: MapPosition = location.position ?? FALLBACK_POSITION;
+  const { activities, isLoading, error, refetch } = useNearbyActivities(location.position);
+
+  const refreshNearby = useCallback(async () => {
+    await refreshLocation();
+    await refetch();
+  }, [refreshLocation, refetch]);
 
   const markers: MapMarker[] = activities
     .filter((a) => a.latitude !== undefined && a.longitude !== undefined)
@@ -40,7 +46,7 @@ export default function MapScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.mapContainer}>
           <MapView
-            center={LYON_CENTER}
+            center={center}
             zoom={12}
             markers={markers}
             onMarkerPress={openActivity}
@@ -49,6 +55,8 @@ export default function MapScreen() {
         </View>
         <FlatList
           data={activities}
+          refreshing={isLoading || location.isLocating}
+          onRefresh={refreshNearby}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ActivityCard activity={item} onPress={() => openActivity(item.id)} />
@@ -68,13 +76,15 @@ export default function MapScreen() {
               <ThemedView type="backgroundElement" style={styles.locationBanner}>
                 <Icon name="place" size={16} themeColor="textSecondary" />
                 <ThemedText type="small" themeColor="textSecondary" style={{ flex: 1 }}>
-                  Localisation simulée — Lyon centre
+                  {location.source === 'device'
+                    ? 'Résultats dans un rayon de 50 km autour de ta position'
+                    : (location.message ?? 'Recherche de ta position…')}
                 </ThemedText>
               </ThemedView>
             </View>
           }
           ListEmptyComponent={
-            isLoading ? (
+            isLoading || location.isLocating ? (
               <View style={styles.emptyState}>
                 <ActivityIndicator size="large" />
               </View>
