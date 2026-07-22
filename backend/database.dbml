@@ -1,6 +1,5 @@
 // MyActivities — Database Schema (DBML)
 // Target: PostgreSQL
-// Source: swagger.yaml + business rules (CLAUDE.md)
 // Author: Charles Deschamps
 
 Project MyActivities {

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "npm run migrate && nodemon -L --watch src --ext ts --exec ts-node src/index.ts",
     "build": "tsc",
+    "postbuild": "node scripts/copy-build-assets.cjs",
     "start": "node dist/db/migrate.js && node dist/index.js",
     "migrate": "ts-node src/db/migrate.ts",
     "seed": "ts-node src/db/seed.ts",

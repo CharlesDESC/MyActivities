@@ -1,7 +1,9 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# La compilation TypeScript a besoin de types declares en devDependencies.
+# --include=dev evite que NODE_ENV=production fourni par l'hebergeur les omette.
+RUN npm ci --include=dev
 
 FROM base AS dev
 ENV NODE_ENV=development
