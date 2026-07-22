@@ -2,6 +2,7 @@ import { Pressable, View } from 'react-native';
 
 import { styles } from '@/styles/components/ui/planning-card';
 import { ThemedText } from '@/components/ui/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { ThemedView } from '@/components/ui/themed-view';
 import { useTheme } from '@/hooks/use-theme';
 import { CATEGORY_CONFIG } from '@/types/activity';
@@ -41,7 +42,7 @@ export function PlanningCard({ entry, onRemove }: Props) {
           {entry.activity.name}
         </ThemedText>
         <ThemedText type="small" style={[styles.categoryLabel, { color: cfg.color }]}>
-          {cfg.emoji} {cfg.label}
+          {cfg.label}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.address}>
           {entry.activity.address}
@@ -55,7 +56,7 @@ export function PlanningCard({ entry, onRemove }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`Retirer ${entry.activity.name} du planning`}
         style={({ pressed }) => [styles.removeBtn, pressed && { opacity: 0.5 }]}>
-        <ThemedText style={{ fontSize: 18, color: theme.textSecondary }}>✕</ThemedText>
+        <Icon name="close" size={18} color={theme.textSecondary} />
       </Pressable>
     </ThemedView>
   );

@@ -33,5 +33,6 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(128,128,128,0.2)',
   },
   rowName: { flex: 1, minWidth: 120 },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   empty: { textAlign: 'center', paddingTop: Spacing.six },
 });

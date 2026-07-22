@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 
 import { styles } from '@/styles/app/friends';
 import { ThemedText } from '@/components/ui/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +52,7 @@ export default function FriendsScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
-            <ThemedText style={styles.backIcon}>←</ThemedText>
+            <Icon name="arrow-back" size={24} />
           </Pressable>
           <ThemedText type="subtitle" style={styles.headerTitle}>Amis</ThemedText>
         </View>
@@ -82,11 +83,11 @@ export default function FriendsScreen() {
             contentContainerStyle={styles.listContent}
             renderItem={({ item }) => (
               <View style={styles.row}>
-                <ThemedText style={styles.avatar}>👤</ThemedText>
+                <Icon name="account-circle" size={28} themeColor="textSecondary" />
                 <ThemedText type="smallBold" style={styles.rowName} numberOfLines={1}>{item.pseudo}</ThemedText>
                 <Button label="Message" variant="ghost" style={styles.smallBtn} onPress={() => openDirect(item.id, item.pseudo)} />
                 <Pressable onPress={() => remove(item.id)} accessibilityRole="button" accessibilityLabel={`Retirer ${item.pseudo}`}>
-                  <ThemedText style={[styles.removeIcon, { color: theme.textSecondary }]}>✕</ThemedText>
+                  <Icon name="close" size={18} color={theme.textSecondary} />
                 </Pressable>
               </View>
             )}
@@ -110,7 +111,7 @@ export default function FriendsScreen() {
             }
             renderItem={({ item }) => (
               <View style={styles.row}>
-                <ThemedText style={styles.avatar}>👤</ThemedText>
+                <Icon name="account-circle" size={28} themeColor="textSecondary" />
                 <ThemedText type="smallBold" style={styles.rowName} numberOfLines={1}>{item.user.pseudo}</ThemedText>
                 <Button label="Accepter" style={styles.smallBtn} onPress={() => accept(item.id)} />
                 <Button label="Refuser" variant="ghost" style={styles.smallBtn} onPress={() => decline(item.id)} />
@@ -130,7 +131,7 @@ export default function FriendsScreen() {
               const isPending = pendingIds.has(item.id);
               return (
                 <View style={styles.row}>
-                  <ThemedText style={styles.avatar}>👤</ThemedText>
+                  <Icon name="account-circle" size={28} themeColor="textSecondary" />
                   <ThemedText type="smallBold" style={styles.rowName} numberOfLines={1}>{item.pseudo}</ThemedText>
                   {isFriend ? (
                     <ThemedText type="small" themeColor="textSecondary">Ami</ThemedText>

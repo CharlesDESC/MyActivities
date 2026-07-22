@@ -5,6 +5,7 @@ import { styles } from '@/styles/app/dashboard';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { WebContainer } from '@/components/web/web-container';
 import { OrganizerOnly } from '@/components/organizer/organizer-only';
 import { useOrganizerStats } from '@/hooks/use-organizer-stats';
@@ -53,11 +54,20 @@ export default function DashboardScreen() {
                   renderItem={({ item }) => (
                     <ThemedView type="backgroundElement" style={styles.row}>
                       <ThemedText type="smallBold" style={styles.rowName} numberOfLines={1}>{item.activityName}</ThemedText>
-                      <ThemedText type="small" themeColor="textSecondary">👁 {item.views}</ThemedText>
-                      <ThemedText type="small" themeColor="textSecondary">📅 {item.planningAdds}</ThemedText>
-                      <ThemedText type="small" themeColor="textSecondary">
-                        ⭐ {item.avgRating !== null ? item.avgRating.toFixed(1) : '—'} ({item.reviewCount})
-                      </ThemedText>
+                      <View style={styles.stat}>
+                        <Icon name="visibility" size={14} themeColor="textSecondary" />
+                        <ThemedText type="small" themeColor="textSecondary">{item.views}</ThemedText>
+                      </View>
+                      <View style={styles.stat}>
+                        <Icon name="event" size={14} themeColor="textSecondary" />
+                        <ThemedText type="small" themeColor="textSecondary">{item.planningAdds}</ThemedText>
+                      </View>
+                      <View style={styles.stat}>
+                        <Icon name="star" size={14} color="#F59E0B" />
+                        <ThemedText type="small" themeColor="textSecondary">
+                          {item.avgRating !== null ? item.avgRating.toFixed(1) : '—'} ({item.reviewCount})
+                        </ThemedText>
+                      </View>
                     </ThemedView>
                   )}
                   ListEmptyComponent={

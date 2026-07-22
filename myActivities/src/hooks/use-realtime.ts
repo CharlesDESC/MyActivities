@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
 
 import { useAuth } from '@/context/auth';
 import { STORAGE_KEYS } from '@/lib/api';
+import { tokenStorage } from '@/lib/token-storage';
 import { getRealtimeClient } from '@/lib/socket';
 
 /**
@@ -15,7 +15,7 @@ export function useRealtime() {
 
   useEffect(() => {
     if (user) {
-      client.connect(() => SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN));
+      client.connect(() => tokenStorage.get(STORAGE_KEYS.ACCESS_TOKEN));
     } else {
       client.disconnect();
     }

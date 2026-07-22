@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 
 import { styles } from '@/styles/app/new-group';
 import { ThemedText } from '@/components/ui/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +52,7 @@ export default function NewGroupScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
-            <ThemedText style={styles.backIcon}>←</ThemedText>
+            <Icon name="arrow-back" size={24} />
           </Pressable>
           <ThemedText type="subtitle" style={styles.headerTitle}>Nouveau groupe</ThemedText>
         </View>
@@ -77,10 +78,10 @@ export default function NewGroupScreen() {
                 accessibilityState={{ checked: isSelected }}
                 accessibilityLabel={item.pseudo}>
                 <View style={styles.row}>
-                  <ThemedText style={styles.avatar}>👤</ThemedText>
+                  <Icon name="account-circle" size={28} themeColor="textSecondary" />
                   <ThemedText type="smallBold" style={styles.rowName} numberOfLines={1}>{item.pseudo}</ThemedText>
                   <View style={[styles.checkbox, { borderColor: theme.textSecondary }, isSelected && styles.checkboxOn]}>
-                    {isSelected && <ThemedText style={styles.checkMark}>✓</ThemedText>}
+                    {isSelected && <Icon name="check" size={14} color="#ffffff" />}
                   </View>
                 </View>
               </Pressable>

@@ -6,6 +6,7 @@ import { styles } from '@/styles/app/my-activities';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { WebContainer } from '@/components/web/web-container';
 import { OrganizerOnly } from '@/components/organizer/organizer-only';
 import { useOrganizerActivities } from '@/hooks/use-organizer-activities';
@@ -22,7 +23,7 @@ export default function MyActivitiesScreen() {
           <WebContainer>
             <View style={styles.header}>
               <ThemedText type="title" style={styles.title}>Mes activités</ThemedText>
-              <Button label="＋ Nouvelle activité" style={styles.newBtn} onPress={() => router.push('/activity/new')} />
+              <Button label="Nouvelle activité" style={styles.newBtn} onPress={() => router.push('/activity/new')} />
             </View>
 
             {error ? (
@@ -48,7 +49,7 @@ export default function MyActivitiesScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`Éditer ${item.name}`}>
                       <ThemedView type="backgroundElement" style={styles.row}>
-                        <ThemedText style={styles.emoji}>{cat.emoji}</ThemedText>
+                        <Icon name={cat.icon} size={24} color={cat.color} />
                         <View style={styles.rowBody}>
                           <ThemedText type="smallBold" numberOfLines={1}>{item.name}</ThemedText>
                           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>{item.address}</ThemedText>
@@ -64,7 +65,7 @@ export default function MyActivitiesScreen() {
                 }}
                 ListEmptyComponent={
                   <View style={styles.empty}>
-                    <ThemedText style={styles.emptyEmoji}>🗂️</ThemedText>
+                    <Icon name="inbox" size={44} themeColor="textSecondary" />
                     <ThemedText type="smallBold">Aucune activité</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
                       Crée ta première activité — elle sera validée par un administrateur avant publication.

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Pressable,
+  ActivityIndicator, Alert, Pressable,
   ScrollView, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { styles } from '@/styles/app/activity-detail';
 import { Button } from '@/components/ui/button';
 import { Calendar, toDateKey } from '@/components/ui/calendar';
 import { StarRating } from '@/components/ui/star-rating';
+import { Icon } from '@/components/ui/icon';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -87,7 +88,7 @@ export default function ActivityDetailScreen() {
   if (error || !activity) {
     return (
       <ThemedView style={styles.errorContainer}>
-        <ThemedText style={{ fontSize: 40 }}>😕</ThemedText>
+        <Icon name="error-outline" size={40} themeColor="textSecondary" />
         <ThemedText type="subtitle">Activité introuvable</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
         <Button label="Retour" variant="ghost" onPress={() => router.back()} />
@@ -154,12 +155,15 @@ export default function ActivityDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel="Retour"
             style={{ padding: Spacing.three }}>
-            <ThemedText style={{ fontSize: 16 }}>← Retour</ThemedText>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Icon name="arrow-back" size={18} />
+              <ThemedText type="small">Retour</ThemedText>
+            </View>
           </Pressable>
 
           {/* Hero */}
           <View style={[styles.hero, { backgroundColor: cfg.color + '22' }]}>
-            <ThemedText style={styles.heroEmoji}>{cfg.emoji}</ThemedText>
+            <Icon name={cfg.icon} size={64} color={cfg.color} />
           </View>
 
           {/* Body */}
@@ -187,17 +191,19 @@ export default function ActivityDetailScreen() {
             {/* Meta chips */}
             <View style={styles.metaRow}>
               <ThemedView type="backgroundElement" style={styles.metaChip}>
-                <ThemedText type="small">💰</ThemedText>
+                <Icon name="payments" size={15} themeColor="textSecondary" />
                 <ThemedText type="small">{priceLabel}</ThemedText>
               </ThemedView>
               {activity.accessibilityPmr && (
                 <ThemedView type="backgroundElement" style={styles.metaChip}>
-                  <ThemedText type="small">♿ PMR</ThemedText>
+                  <Icon name="accessible" size={15} themeColor="text" />
+                  <ThemedText type="small">PMR</ThemedText>
                 </ThemedView>
               )}
               {activity.accessibilityStroller && (
                 <ThemedView type="backgroundElement" style={styles.metaChip}>
-                  <ThemedText type="small">🍼 Poussette</ThemedText>
+                  <Icon name="child-friendly" size={15} themeColor="text" />
+                  <ThemedText type="small">Poussette</ThemedText>
                 </ThemedView>
               )}
             </View>
@@ -238,14 +244,14 @@ export default function ActivityDetailScreen() {
               <ThemedText type="smallBold">Organisateur</ThemedText>
               <View style={styles.organizerRow}>
                 <View style={[styles.organizerAvatar, { backgroundColor: cfg.color + '33' }]}>
-                  <ThemedText>👤</ThemedText>
+                  <Icon name="account-circle" size={20} themeColor="textSecondary" />
                 </View>
                 <ThemedText type="small">{activity.organizer.pseudo}</ThemedText>
               </View>
               {/* Contacter l'organisateur (pas soi-même) → ouvre une conversation neuve */}
               {user && user.id !== activity.organizer.id && (
                 <Button
-                  label="💬 Contacter l'organisateur"
+                  label="Contacter l'organisateur"
                   variant="ghost"
                   style={{ marginTop: Spacing.two }}
                   onPress={() =>
@@ -268,7 +274,7 @@ export default function ActivityDetailScreen() {
               <>
                 {!showPlanningForm ? (
                   <Button
-                    label="📅 Ajouter au planning"
+                    label="Ajouter au planning"
                     onPress={() => setShowPlanningForm(true)}
                   />
                 ) : (
@@ -410,7 +416,7 @@ export default function ActivityDetailScreen() {
               {reviews?.data.map((review) => (
                 <View key={review.id} style={styles.reviewItem}>
                   <ThemedView type="backgroundElement" style={styles.reviewAvatar}>
-                    <ThemedText style={{ fontSize: 14 }}>👤</ThemedText>
+                    <Icon name="account-circle" size={16} themeColor="textSecondary" />
                   </ThemedView>
                   <View style={styles.reviewBody}>
                     <View style={styles.reviewMeta}>

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -19,9 +20,7 @@ export default function ForgotPasswordScreen() {
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.centered}>
           <ThemedView style={styles.successBox}>
-            <ThemedText type="subtitle" style={styles.successIcon}>
-              📬
-            </ThemedText>
+            <Icon name="mark-email-read" size={48} color="#208AEF" />
             <ThemedText type="subtitle">Vérifie ta boîte mail</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.successText}>
               Si un compte correspond à{' '}
@@ -82,7 +81,7 @@ export default function ForgotPasswordScreen() {
 
             <ThemedView style={styles.footer}>
               <Link href="/login" asChild>
-                <ThemedText type="linkPrimary">← Retour à la connexion</ThemedText>
+                <ThemedText type="linkPrimary">Retour à la connexion</ThemedText>
               </Link>
             </ThemedView>
           </ScrollView>

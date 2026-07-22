@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 
 import { styles } from '@/styles/app/messages';
 import { ThemedText } from '@/components/ui/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
@@ -47,7 +48,7 @@ export default function ConversationsScreen() {
   if (error) {
     return (
       <ThemedView style={styles.errorContainer}>
-        <ThemedText style={{ fontSize: 36 }}>😕</ThemedText>
+        <Icon name="error-outline" size={36} themeColor="textSecondary" />
         <ThemedText type="subtitle">Erreur de chargement</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
         <Button label="Réessayer" variant="ghost" onPress={refresh} />
@@ -61,7 +62,7 @@ export default function ConversationsScreen() {
         <View style={styles.header}>
           {router.canGoBack() && (
             <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
-              <ThemedText style={styles.backIcon}>←</ThemedText>
+              <Icon name="arrow-back" size={24} />
             </Pressable>
           )}
           <ThemedText type="subtitle" style={styles.headerTitle}>Messages</ThemedText>
@@ -70,13 +71,13 @@ export default function ConversationsScreen() {
               onPress={() => router.push('/messages/friends')}
               accessibilityRole="button"
               accessibilityLabel="Amis">
-              <ThemedText style={styles.headerActionIcon}>👥</ThemedText>
+              <Icon name="group" size={24} />
             </Pressable>
             <Pressable
               onPress={() => router.push('/messages/new-group')}
               accessibilityRole="button"
               accessibilityLabel="Nouveau groupe">
-              <ThemedText style={styles.headerActionIcon}>＋</ThemedText>
+              <Icon name="add" size={24} />
             </Pressable>
           </View>
         </View>
@@ -97,7 +98,7 @@ export default function ConversationsScreen() {
               accessibilityLabel={`Conversation ${conversationName(item)}`}>
               <View style={styles.row}>
                 <ThemedView type="backgroundElement" style={styles.avatar}>
-                  <ThemedText style={styles.avatarEmoji}>{item.type === 'group' ? '👥' : '👤'}</ThemedText>
+                  <Icon name={item.type === 'group' ? 'group' : 'account-circle'} size={28} themeColor="textSecondary" />
                 </ThemedView>
                 <View style={styles.rowBody}>
                   <View style={styles.rowTop}>
@@ -131,7 +132,7 @@ export default function ConversationsScreen() {
           ListEmptyComponent={
             !isLoading ? (
               <View style={styles.empty}>
-                <ThemedText style={styles.emptyEmoji}>💬</ThemedText>
+                <Icon name="chat-bubble-outline" size={44} themeColor="textSecondary" />
                 <ThemedText type="smallBold">Aucune conversation</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
                   Ajoute des amis puis démarre une conversation ou crée un groupe.

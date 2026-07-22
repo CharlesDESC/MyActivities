@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityCard } from '@/components/ui/activity-card';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
+import { Icon } from '@/components/ui/icon';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { useNearbyActivities } from '@/hooks/use-activities';
@@ -25,7 +26,7 @@ const CATEGORIES: ActivityCategory[] = [
 function getGreeting(pseudo: string): string {
   const h = new Date().getHours();
   const salut = h < 12 ? 'Bonjour' : h < 18 ? 'Bonne après-midi' : 'Bonsoir';
-  return `${salut}, ${pseudo} 👋`;
+  return `${salut}, ${pseudo}`;
 }
 
 export default function HomeScreen() {
@@ -89,7 +90,7 @@ export default function HomeScreen() {
 
               {/* Search bar */}
               <View style={[styles.searchBar, { backgroundColor: theme.backgroundElement }]}>
-                <ThemedText style={styles.searchIcon}>🔍</ThemedText>
+                <Icon name="search" size={18} themeColor="textSecondary" />
                 <TextInput
                   placeholder="Rechercher une activité..."
                   placeholderTextColor={theme.textSecondary}
@@ -147,7 +148,7 @@ export default function HomeScreen() {
                       <ThemedText
                         type="small"
                         style={{ color: active ? '#ffffff' : theme.text, fontWeight: '600' }}>
-                        {cfg.emoji} {cfg.label}
+                        {cfg.label}
                       </ThemedText>
                     </Pressable>
                   );
@@ -169,7 +170,7 @@ export default function HomeScreen() {
               </View>
             ) : error ? (
               <View style={styles.empty}>
-                <ThemedText style={styles.emptyEmoji}>😕</ThemedText>
+                <Icon name="error-outline" size={40} themeColor="textSecondary" />
                 <ThemedText type="smallBold">Impossible de charger les activités</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
                   {error}
@@ -177,7 +178,7 @@ export default function HomeScreen() {
               </View>
             ) : (
               <View style={styles.empty}>
-                <ThemedText style={styles.emptyEmoji}>🔍</ThemedText>
+                <Icon name="search-off" size={40} themeColor="textSecondary" />
                 <ThemedText type="smallBold">Aucune activité trouvée</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
                   {"Essaie d'autres mots-clés ou modifie tes filtres."}

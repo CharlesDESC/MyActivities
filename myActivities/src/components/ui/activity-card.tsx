@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { styles } from '@/styles/components/ui/activity-card';
 
 import { ThemedText } from '@/components/ui/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { CATEGORY_CONFIG, type ActivitySummary } from '@/types/activity';
@@ -46,7 +47,7 @@ export function ActivityCard({ activity, onPress }: Props) {
         pressed && styles.pressed,
       ]}>
       <View style={[styles.thumb, { backgroundColor: cfg.color + '22' }]}>
-        <ThemedText style={styles.emoji}>{cfg.emoji}</ThemedText>
+        <Icon name={cfg.icon} size={32} color={cfg.color} />
       </View>
 
       <View style={styles.info}>
@@ -59,7 +60,8 @@ export function ActivityCard({ activity, onPress }: Props) {
         </ThemedText>
 
         <View style={styles.metaRow}>
-          <ThemedText type="small">⭐ {activity.avgRating.toFixed(1)}</ThemedText>
+          <Icon name="star" size={13} color="#F59E0B" />
+          <ThemedText type="small">{' '}{activity.avgRating.toFixed(1)}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {' '}({activity.reviewCount})
           </ThemedText>

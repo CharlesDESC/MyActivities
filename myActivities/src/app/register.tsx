@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -21,9 +22,7 @@ export default function RegisterScreen() {
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.centered}>
           <ThemedView style={styles.successBox}>
-            <ThemedText type="subtitle" style={styles.successIcon}>
-              ✉️
-            </ThemedText>
+            <Icon name="mark-email-read" size={48} color="#208AEF" />
             <ThemedText type="subtitle">Vérifie ta boîte mail</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.successText}>
               {"Un lien de confirmation t'a été envoyé à "}

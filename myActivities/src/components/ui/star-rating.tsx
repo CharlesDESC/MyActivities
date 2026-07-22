@@ -1,7 +1,7 @@
 import { Pressable, View } from 'react-native';
 
 import { styles } from '@/styles/components/ui/star-rating';
-import { ThemedText } from '@/components/ui/themed-text';
+import { Icon } from '@/components/ui/icon';
 
 type Props = {
   value: number;
@@ -10,8 +10,10 @@ type Props = {
   onRate?: (rating: number) => void;
 };
 
+const AMBER = '#F59E0B';
+
 export function StarRating({ value, max = 5, size = 'normal', onRate }: Props) {
-  const starStyle = size === 'small' ? styles.starSmall : styles.star;
+  const iconSize = size === 'small' ? 16 : 22;
 
   return (
     <View
@@ -23,17 +25,22 @@ export function StarRating({ value, max = 5, size = 'normal', onRate }: Props) {
       accessibilityLabel={onRate ? undefined : `Note : ${Math.round(value)} sur ${max}`}>
       {Array.from({ length: max }, (_, i) => {
         const filled = i < Math.round(value);
+        const testID = filled ? 'star-filled' : 'star-empty';
+        const star = <Icon name={filled ? 'star' : 'star-border'} size={iconSize} color={AMBER} />;
         return onRate ? (
           <Pressable
             key={i}
             onPress={() => onRate(i + 1)}
             hitSlop={4}
+            testID={testID}
             accessibilityRole="button"
             accessibilityLabel={`Noter ${i + 1} étoile${i > 0 ? 's' : ''} sur ${max}`}>
-            <ThemedText style={starStyle}>{filled ? '⭐' : '☆'}</ThemedText>
+            {star}
           </Pressable>
         ) : (
-          <ThemedText key={i} style={starStyle}>{filled ? '⭐' : '☆'}</ThemedText>
+          <View key={i} testID={testID}>
+            {star}
+          </View>
         );
       })}
     </View>

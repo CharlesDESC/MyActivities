@@ -5,18 +5,18 @@ import { StarRating } from '@/components/ui/star-rating';
 describe('StarRating', () => {
   it('fills the rounded number of stars', async () => {
     await render(<StarRating value={3} />);
-    expect(screen.getAllByText('⭐')).toHaveLength(3);
-    expect(screen.getAllByText('☆')).toHaveLength(2);
+    expect(screen.getAllByTestId('star-filled')).toHaveLength(3);
+    expect(screen.getAllByTestId('star-empty')).toHaveLength(2);
   });
 
   it('rounds the value to the nearest star', async () => {
     await render(<StarRating value={3.6} />);
-    expect(screen.getAllByText('⭐')).toHaveLength(4);
+    expect(screen.getAllByTestId('star-filled')).toHaveLength(4);
   });
 
   it('respects a custom max', async () => {
     await render(<StarRating value={0} max={3} />);
-    expect(screen.getAllByText('☆')).toHaveLength(3);
+    expect(screen.getAllByTestId('star-empty')).toHaveLength(3);
   });
 
   it('is read-only (no press handler) by default', async () => {
@@ -30,7 +30,7 @@ describe('StarRating', () => {
     const onRate = jest.fn();
     await render(<StarRating value={0} onRate={onRate} />);
 
-    fireEvent.press(screen.getAllByText('☆')[3]);
+    fireEvent.press(screen.getAllByTestId('star-empty')[3]);
     expect(onRate).toHaveBeenCalledWith(4);
   });
 });

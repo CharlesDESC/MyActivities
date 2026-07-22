@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { styles } from '@/styles/app/map';
 import { ActivityCard } from '@/components/ui/activity-card';
 import { ThemedText } from '@/components/ui/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { ThemedView } from '@/components/ui/themed-view';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useNearbyActivities } from '@/hooks/use-activities';
@@ -27,7 +28,7 @@ export default function MapScreen() {
     .map((a) => ({
       id: a.id,
       position: { latitude: a.latitude!, longitude: a.longitude! },
-      label: CATEGORY_CONFIG[a.category].emoji,
+      label: CATEGORY_CONFIG[a.category].label,
       color: CATEGORY_CONFIG[a.category].color,
     }));
 
@@ -65,7 +66,7 @@ export default function MapScreen() {
               </ThemedText>
               {/* GPS banner */}
               <ThemedView type="backgroundElement" style={styles.locationBanner}>
-                <ThemedText style={{ fontSize: 16 }}>📍</ThemedText>
+                <Icon name="place" size={16} themeColor="textSecondary" />
                 <ThemedText type="small" themeColor="textSecondary" style={{ flex: 1 }}>
                   Localisation simulée — Lyon centre
                 </ThemedText>
@@ -79,7 +80,7 @@ export default function MapScreen() {
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <ThemedText style={{ fontSize: 40 }}>{error ? '😕' : '🗺️'}</ThemedText>
+                <Icon name={error ? 'error-outline' : 'map'} size={40} themeColor="textSecondary" />
                 <ThemedText type="smallBold">
                   {error ? 'Impossible de charger les activités' : 'Aucune activité à proximité'}
                 </ThemedText>

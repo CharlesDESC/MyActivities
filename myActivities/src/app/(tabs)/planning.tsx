@@ -6,6 +6,7 @@ import { PlanningCard } from '@/components/ui/planning-card';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { usePlanning } from '@/hooks/use-planning';
 import type { PlanningEntry } from '@/types/planning';
 
@@ -30,7 +31,7 @@ export default function PlanningScreen() {
   if (error) {
     return (
       <ThemedView style={styles.errorContainer}>
-        <ThemedText style={{ fontSize: 36 }}>😕</ThemedText>
+        <Icon name="error-outline" size={36} themeColor="textSecondary" />
         <ThemedText type="subtitle">Erreur de chargement</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
         <Button label="Réessayer" variant="ghost" onPress={refresh} />
@@ -62,7 +63,7 @@ export default function PlanningScreen() {
           ListEmptyComponent={
             !isLoading ? (
               <View style={styles.empty}>
-                <ThemedText style={styles.emptyEmoji}>📅</ThemedText>
+                <Icon name="event" size={44} themeColor="textSecondary" />
                 <ThemedText type="smallBold">Aucune activité planifiée</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
                   Explore les activités autour de toi et ajoute-en à ton planning !

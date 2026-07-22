@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
 import { WebContainer } from '@/components/web/web-container';
 import { OrganizerOnly } from '@/components/organizer/organizer-only';
 import { useTheme } from '@/hooks/use-theme';
@@ -44,7 +45,7 @@ export function ActivityFormView({
           <WebContainer>
             <View style={styles.header}>
               <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Retour">
-                <ThemedText style={styles.backIcon}>←</ThemedText>
+                <Icon name="arrow-back" size={24} />
               </Pressable>
               <ThemedText type="title" style={styles.title}>
                 {isEditing ? 'Modifier l’activité' : 'Nouvelle activité'}
@@ -73,7 +74,7 @@ export function ActivityFormView({
                         accessibilityRole="button" accessibilityState={{ selected: active }}>
                         <ThemedView type={active ? 'backgroundSelected' : 'backgroundElement'} style={styles.pill}>
                           <ThemedText type="small" themeColor={active ? 'text' : 'textSecondary'}>
-                            {CATEGORY_CONFIG[c].emoji} {CATEGORY_CONFIG[c].label}
+                            {CATEGORY_CONFIG[c].label}
                           </ThemedText>
                         </ThemedView>
                       </Pressable>
@@ -116,7 +117,7 @@ export function ActivityFormView({
                       accessibilityRole="checkbox" accessibilityState={{ checked: values[key] }}>
                       <ThemedView type="backgroundElement" style={styles.toggle}>
                         <View style={[styles.checkbox, { borderColor: theme.textSecondary }, values[key] && styles.checkboxOn]}>
-                          {values[key] && <ThemedText style={styles.checkMark}>✓</ThemedText>}
+                          {values[key] && <Icon name="check" size={14} color="#ffffff" />}
                         </View>
                         <ThemedText type="small">{label}</ThemedText>
                       </ThemedView>

@@ -1,3 +1,5 @@
+import type { IconName } from '@/components/ui/icon';
+
 export type ActivityCategory =
   | 'sport'
   | 'culture'
@@ -92,14 +94,14 @@ export type ActivitySlot = {
 
 export const CATEGORY_CONFIG: Record<
   ActivityCategory,
-  { label: string; emoji: string; color: string }
+  { label: string; icon: IconName; color: string }
 > = {
-  sport:       { label: 'Sport',        emoji: '🏃', color: '#3B82F6' },
-  culture:     { label: 'Culture',      emoji: '🎭', color: '#8B5CF6' },
-  gastronomie: { label: 'Gastronomie',  emoji: '🍽️', color: '#F97316' },
-  nature:      { label: 'Nature',       emoji: '🌿', color: '#22C55E' },
-  bien_etre:   { label: 'Bien-être',    emoji: '🧘', color: '#EC4899' },
-  art:         { label: 'Art',          emoji: '🎨', color: '#EAB308' },
-  musique:     { label: 'Musique',      emoji: '🎵', color: '#EF4444' },
-  autre:       { label: 'Autre',        emoji: '✨', color: '#6B7280' },
+  sport:       { label: 'Sport',        icon: 'directions-run',   color: '#3B82F6' },
+  culture:     { label: 'Culture',      icon: 'theater-comedy',   color: '#8B5CF6' },
+  gastronomie: { label: 'Gastronomie',  icon: 'restaurant',       color: '#F97316' },
+  nature:      { label: 'Nature',       icon: 'park',             color: '#22C55E' },
+  bien_etre:   { label: 'Bien-être',    icon: 'self-improvement', color: '#EC4899' },
+  art:         { label: 'Art',          icon: 'palette',          color: '#EAB308' },
+  musique:     { label: 'Musique',      icon: 'music-note',       color: '#EF4444' },
+  autre:       { label: 'Autre',        icon: 'category',         color: '#6B7280' },
 };

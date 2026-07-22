@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
+import { Icon } from '@/components/ui/icon';
 import { Spacing } from '@/constants/theme';
 import { type MapViewProps } from './types';
 
@@ -11,7 +12,7 @@ export function createUnavailableMapView(message: string) {
   return function UnavailableMapView({ style }: MapViewProps) {
     return (
       <ThemedView type="backgroundElement" style={[styles.container, style]}>
-        <ThemedText style={styles.icon}>🗺️</ThemedText>
+        <Icon name="map" size={32} themeColor="textSecondary" />
         <ThemedText type="small" themeColor="textSecondary" style={styles.message}>
           {message}
         </ThemedText>

@@ -27,7 +27,7 @@ describe('PlanningCard', () => {
   it('calls onRemove when the remove button is pressed', async () => {
     const onRemove = jest.fn();
     await render(<PlanningCard entry={entry} onRemove={onRemove} />);
-    fireEvent.press(screen.getByText('✕'));
+    fireEvent.press(screen.getByLabelText(/Retirer .* du planning/));
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 });

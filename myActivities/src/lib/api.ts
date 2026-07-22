@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import { tokenStorage } from '@/lib/token-storage';
 
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
@@ -24,7 +24,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   };
 
   if (!skipAuth) {
-    const token = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+    const token = await tokenStorage.get(STORAGE_KEYS.ACCESS_TOKEN);
     if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -51,7 +51,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 async function tryRefreshToken(): Promise<boolean> {
   try {
-    const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+    const refreshToken = await tokenStorage.get(STORAGE_KEYS.REFRESH_TOKEN);
     if (!refreshToken) return false;
 
     const response = await fetch(`${BASE_URL}/auth/refresh`, {
@@ -61,13 +61,13 @@ async function tryRefreshToken(): Promise<boolean> {
     });
 
     if (!response.ok) {
-      await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
-      await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+      await tokenStorage.remove(STORAGE_KEYS.ACCESS_TOKEN);
+      await tokenStorage.remove(STORAGE_KEYS.REFRESH_TOKEN);
       return false;
     }
 
     const { accessToken } = await response.json() as { accessToken: string };
-    await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    await tokenStorage.set(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
     return true;
   } catch {
     return false;

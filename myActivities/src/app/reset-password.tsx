@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -20,9 +21,7 @@ export default function ResetPasswordScreen() {
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.centered}>
           <ThemedView style={styles.stateBox}>
-            <ThemedText type="subtitle" style={styles.stateIcon}>
-              ⚠️
-            </ThemedText>
+            <Icon name="error-outline" size={48} color="#EF4444" />
             <ThemedText type="subtitle">Lien invalide</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.stateText}>
               Ce lien de réinitialisation est invalide ou a expiré. Fais une nouvelle demande.
@@ -32,7 +31,7 @@ export default function ResetPasswordScreen() {
             <Button label="Nouvelle demande" style={styles.stretchButton} />
           </Link>
           <Link href="/login" asChild>
-            <ThemedText type="linkPrimary">← Retour à la connexion</ThemedText>
+            <ThemedText type="linkPrimary">Retour à la connexion</ThemedText>
           </Link>
         </SafeAreaView>
       </ThemedView>
@@ -44,9 +43,7 @@ export default function ResetPasswordScreen() {
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.centered}>
           <ThemedView style={styles.stateBox}>
-            <ThemedText type="subtitle" style={styles.stateIcon}>
-              ✅
-            </ThemedText>
+            <Icon name="check-circle" size={48} color="#22C55E" />
             <ThemedText type="subtitle">Mot de passe mis à jour</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.stateText}>
               Ton mot de passe a bien été modifié. Tu peux maintenant te connecter.
@@ -122,7 +119,7 @@ export default function ResetPasswordScreen() {
 
             <ThemedView style={styles.footer}>
               <Link href="/login" asChild>
-                <ThemedText type="linkPrimary">← Retour à la connexion</ThemedText>
+                <ThemedText type="linkPrimary">Retour à la connexion</ThemedText>
               </Link>
             </ThemedView>
           </ScrollView>

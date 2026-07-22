@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { styles } from '@/styles/app/profile';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
+import { Icon } from '@/components/ui/icon';
 import { useAuth } from '@/context/auth';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -40,7 +41,7 @@ export default function ProfileScreen() {
           {/* Avatar */}
           <View style={styles.avatarSection}>
             <ThemedView type="backgroundElement" style={styles.avatar}>
-              <ThemedText style={styles.avatarEmoji}>👤</ThemedText>
+              <Icon name="account-circle" size={48} themeColor="textSecondary" />
             </ThemedView>
             <ThemedText type="subtitle">{user.pseudo}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
@@ -81,8 +82,11 @@ export default function ProfileScreen() {
           {/* Messagerie */}
           <Pressable onPress={() => router.push('/messages')} accessibilityRole="button" accessibilityLabel="Ouvrir la messagerie">
             <ThemedView type="backgroundElement" style={styles.row}>
-              <ThemedText type="small" style={{ flex: 1 }}>💬  Messages</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">›</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Icon name="chat" size={18} />
+                <ThemedText type="small">Messages</ThemedText>
+              </View>
+              <Icon name="chevron-right" size={20} themeColor="textSecondary" />
             </ThemedView>
           </Pressable>
 

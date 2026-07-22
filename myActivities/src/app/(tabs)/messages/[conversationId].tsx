@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { styles } from '@/styles/app/messages';
 import { ThemedText } from '@/components/ui/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { ThemedView } from '@/components/ui/themed-view';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/context/auth';
@@ -63,7 +64,7 @@ export default function ChatScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
-            <ThemedText style={styles.backIcon}>←</ThemedText>
+            <Icon name="arrow-back" size={24} />
           </Pressable>
           <ThemedText type="subtitle" style={styles.headerTitle} numberOfLines={1}>
             {params.peerPseudo ?? 'Conversation'}
@@ -99,7 +100,7 @@ export default function ChatScreen() {
             ListEmptyComponent={
               !isLoading ? (
                 <View style={styles.empty}>
-                  <ThemedText style={styles.emptyEmoji}>💬</ThemedText>
+                  <Icon name="chat-bubble-outline" size={44} themeColor="textSecondary" />
                   <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
                     Envoie le premier message.
                   </ThemedText>
@@ -124,7 +125,7 @@ export default function ChatScreen() {
               style={[styles.sendButton, !canSend && styles.sendDisabled]}
               accessibilityRole="button"
               accessibilityLabel="Envoyer">
-              <ThemedText style={styles.sendIcon}>↑</ThemedText>
+              <Icon name="arrow-upward" size={20} color="#ffffff" />
             </Pressable>
           </View>
         </KeyboardAvoidingView>

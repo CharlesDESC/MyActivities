@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
 
 import { api, ApiError, STORAGE_KEYS, setUnauthenticatedCallback } from '@/lib/api';
+import { tokenStorage } from '@/lib/token-storage';
 
 export type User = {
   id: string;
@@ -25,8 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const clearSession = useCallback(async () => {
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+    await tokenStorage.remove(STORAGE_KEYS.ACCESS_TOKEN);
+    await tokenStorage.remove(STORAGE_KEYS.REFRESH_TOKEN);
     setUser(null);
   }, []);
 
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const token = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+        const token = await tokenStorage.get(STORAGE_KEYS.ACCESS_TOKEN);
         if (token) {
           const me = await api.get<User>('/users/me');
           setUser(me);
@@ -59,8 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: User;
     }>('/auth/login', { pseudo, password }, { skipAuth: true });
 
-    await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-    await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+    await tokenStorage.set(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    await tokenStorage.set(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
     setUser(loggedUser);
   }, []);
 
