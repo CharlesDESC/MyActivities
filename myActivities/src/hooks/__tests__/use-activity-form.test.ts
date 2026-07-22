@@ -40,9 +40,6 @@ const VALID: ActivityFormState = {
   name: '  Atelier poterie  ',
   category: 'art',
   description: '  Une description suffisamment longue pour être valide.  ',
-  address: '  10 rue des Arts, Paris  ',
-  latitude: '48.8566',
-  longitude: '2.3522',
   priceMin: '15',
   priceMax: '30',
   websiteUrl: '',
@@ -72,7 +69,7 @@ describe('useActivityForm — initialisation', () => {
     const { result } = await renderHook(() => useActivityForm());
 
     expect(result.current.values).toMatchObject({
-      name: '', category: 'autre', latitude: '', priceMin: '', pmr: false,
+      name: '', category: 'autre', priceMin: '', pmr: false,
     });
     expect(result.current.isEditing).toBe(false);
     expect(result.current.isSubmitting).toBe(false);
@@ -86,7 +83,6 @@ describe('useActivityForm — initialisation', () => {
     expect(result.current.isEditing).toBe(true);
     expect(result.current.values).toMatchObject({
       name: ACTIVITY.name,
-      latitude: '48.8566',
       priceMin: '15',
       websiteUrl: '',
       pmr: true,
@@ -107,7 +103,7 @@ describe('useActivityForm — initialisation', () => {
 });
 
 describe('useActivityForm — validation', () => {
-  it('reports all required and numeric errors', async () => {
+  it('reports all required and price errors', async () => {
     const { result } = await renderHook(() => useActivityForm());
 
     await act(async () => { await result.current.submit(); });
@@ -115,9 +111,6 @@ describe('useActivityForm — validation', () => {
     expect(result.current.errors).toMatchObject({
       name: expect.any(String),
       description: expect.any(String),
-      address: expect.any(String),
-      latitude: expect.any(String),
-      longitude: expect.any(String),
       priceMin: expect.any(String),
       priceMax: expect.any(String),
     });
@@ -125,12 +118,6 @@ describe('useActivityForm — validation', () => {
   });
 
   it.each([
-    ['latitude', 'abc'],
-    ['latitude', '91'],
-    ['latitude', '-91'],
-    ['longitude', 'abc'],
-    ['longitude', '181'],
-    ['longitude', '-181'],
     ['priceMin', '-1'],
     ['priceMin', 'abc'],
     ['priceMax', '-1'],
@@ -179,9 +166,6 @@ describe('useActivityForm — enregistrement', () => {
       name: 'Atelier poterie',
       category: 'art',
       description: 'Une description suffisamment longue pour être valide.',
-      address: '10 rue des Arts, Paris',
-      latitude: 48.8566,
-      longitude: 2.3522,
       priceMin: 15,
       priceMax: 30,
       accessibility: { pmr: true, stroller: false },

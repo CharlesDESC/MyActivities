@@ -27,9 +27,6 @@ export type ActivityFormInput = {
   name: string;
   category: ActivityCategory;
   description: string;
-  address: string;
-  latitude: number;
-  longitude: number;
   priceMin: number;
   priceMax: number;
   accessibility?: { pmr: boolean; stroller: boolean };
@@ -59,6 +56,7 @@ export type ActivityDetail = {
   address: string;
   latitude: number;
   longitude: number;
+  establishmentId?: string | null;
   avgRating: number | null;
   reviewCount: number;
   priceMin: number;

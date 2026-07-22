@@ -36,6 +36,8 @@ services:
         value: 900000
       - key: CORS_ORIGIN
         sync: false           # À renseigner : URL de l'app mobile en prod
+      - key: MAPBOX_ACCESS_TOKEN
+        sync: false           # Token serveur pour le Geocoding permanent
       # Base des liens dans les emails (pages /verify-email et /reset-password servies par ce backend)
       - key: APP_URL
         value: https://myactivities-backend.onrender.com

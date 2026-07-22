@@ -177,9 +177,6 @@ describe('POST /v1/activities', () => {
     name: 'Bowling Night',
     category: 'sport',
     description: 'Fun bowling evening for everyone who loves to play',
-    address: '12 rue de la Paix, Paris',
-    latitude: 48.8,
-    longitude: 2.3,
     priceMin: 5,
     priceMax: 20,
   };

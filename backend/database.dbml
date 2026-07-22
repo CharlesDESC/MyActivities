@@ -132,9 +132,27 @@ Table login_attempts {
 // ACTIVITIES
 // ══════════════════════════════════════════════
 
+Table establishments {
+  id           uuid              [pk, default: `gen_random_uuid()`]
+  organizer_id uuid              [not null, unique, ref: > users.id, note: 'Un seul établissement par compte organisateur']
+  name         varchar(100)      [not null]
+  address      varchar(500)      [not null, note: 'Adresse Mapbox confirmée avec permanent=true']
+  location     "geography(POINT, 4326)" [not null]
+  mapbox_id    text              [not null]
+  phone        varchar(30)       [null]
+  website_url  text              [null]
+  created_at   timestamptz       [not null, default: `now()`]
+  updated_at   timestamptz       [not null, default: `now()`]
+
+  indexes {
+    location     [type: gist, name: 'idx_establishments_location_gist']
+  }
+}
+
 Table activities {
   id                     uuid              [pk, default: `gen_random_uuid()`]
   organizer_id           uuid              [not null, ref: > users.id]
+  establishment_id       uuid              [null, ref: > establishments.id, note: 'Nullable uniquement pour les anciennes activités']
   name                   varchar(100)      [not null]
   category               activity_category [not null]
   description            text              [not null, note: 'Min 20 / max 2000 chars']
@@ -158,6 +176,7 @@ Table activities {
 
   indexes {
     organizer_id  [name: 'idx_activities_organizer']
+    establishment_id [name: 'idx_activities_establishment']
     status        [name: 'idx_activities_status']
     category      [name: 'idx_activities_category']
     avg_rating    [name: 'idx_activities_rating']

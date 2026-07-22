@@ -12,7 +12,6 @@ import { ThemedView } from '@/components/ui/themed-view';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/context/auth';
 import { useChat } from '@/hooks/use-chat';
-import { useRealtime } from '@/hooks/use-realtime';
 import type { Message } from '@/types/message';
 
 function formatTime(iso: string): string {
@@ -24,12 +23,11 @@ export default function ChatScreen() {
   const theme = useTheme();
   const { user } = useAuth();
   const params = useLocalSearchParams<{ conversationId?: string; recipientId?: string; peerPseudo?: string }>();
-  useRealtime(); // maintient la connexion socket
 
   // Sentinelle "new" → conversation encore inexistante (id déduit du 1er message envoyé).
   const conversationId = params.conversationId === 'new' ? undefined : params.conversationId;
 
-  const { messages, isLoading, isSending, send, markRead } = useChat({
+  const { messages, isLoading, isSending, error, send, markRead } = useChat({
     conversationId,
     recipientId: params.recipientId,
   });
@@ -51,7 +49,18 @@ export default function ChatScreen() {
     const content = draft;
     setDraft('');
     try {
-      await send(content);
+      const sent = await send(content);
+      // Le premier envoi crée la conversation côté serveur. Remplacer la route
+      // `new` par son véritable id rend le refresh et le partage d'URL fiables.
+      if (params.conversationId === 'new' && sent) {
+        router.replace({
+          pathname: '/messages/[conversationId]',
+          params: {
+            conversationId: sent.conversationId,
+            ...(params.peerPseudo ? { peerPseudo: params.peerPseudo } : {}),
+          },
+        });
+      }
     } catch {
       setDraft(content); // restaure le brouillon en cas d'échec
     }
@@ -109,24 +118,31 @@ export default function ChatScreen() {
             }
           />
 
-          <View style={styles.inputBar}>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-              placeholder="Votre message…"
-              placeholderTextColor={theme.textSecondary}
-              value={draft}
-              onChangeText={setDraft}
-              multiline
-              accessibilityLabel="Champ de message"
-            />
-            <Pressable
-              onPress={handleSend}
-              disabled={!canSend}
-              style={[styles.sendButton, !canSend && styles.sendDisabled]}
-              accessibilityRole="button"
-              accessibilityLabel="Envoyer">
-              <Icon name="arrow-upward" size={20} color="#ffffff" />
-            </Pressable>
+          <View style={styles.composer}>
+            {error && (
+              <ThemedText type="small" style={styles.sendError} accessibilityRole="alert">
+                {error}
+              </ThemedText>
+            )}
+            <View style={styles.inputBar}>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
+                placeholder="Votre message…"
+                placeholderTextColor={theme.textSecondary}
+                value={draft}
+                onChangeText={setDraft}
+                multiline
+                accessibilityLabel="Champ de message"
+              />
+              <Pressable
+                onPress={handleSend}
+                disabled={!canSend}
+                style={[styles.sendButton, !canSend && styles.sendDisabled]}
+                accessibilityRole="button"
+                accessibilityLabel="Envoyer">
+                <Icon name="arrow-upward" size={20} color="#ffffff" />
+              </Pressable>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>

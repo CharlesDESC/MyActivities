@@ -260,6 +260,25 @@ async function seed() {
       console.log(`  ✅ Organisateur ${ORGANIZER.pseudo} créé`);
     }
 
+    const demoPlace = ACTIVITIES[0];
+    const { rows: estRows } = await client.query<{ id: string }>(
+      `INSERT INTO establishments
+         (organizer_id, name, address, location, mapbox_id, website_url)
+       VALUES ($1, $2, $3, ST_MakePoint($4, $5)::geography, $6, $7)
+       ON CONFLICT (organizer_id) DO UPDATE SET organizer_id = EXCLUDED.organizer_id
+       RETURNING id`,
+      [
+        organizerId,
+        'Établissement de démonstration',
+        demoPlace.address,
+        demoPlace.longitude,
+        demoPlace.latitude,
+        'seed.demo-establishment',
+        demoPlace.websiteUrl ?? null,
+      ],
+    );
+    const establishmentId = estRows[0].id;
+
     for (const a of ACTIVITIES) {
       const dup = await client.query('SELECT 1 FROM activities WHERE name = $1', [a.name]);
       if (dup.rows.length > 0) {
@@ -268,14 +287,14 @@ async function seed() {
       }
       await client.query(
         `INSERT INTO activities
-           (organizer_id, name, category, description, address, location,
+           (organizer_id, establishment_id, name, category, description, address, location,
             price_min, price_max, opening_hours,
             accessibility_pmr, accessibility_stroller, website_url, status)
-         VALUES ($1, $2, $3, $4, $5, ST_MakePoint($6, $7)::geography,
-                 $8, $9, $10, $11, $12, $13, 'published')`,
+         VALUES ($1, $2, $3, $4, $5, $6, ST_MakePoint($7, $8)::geography,
+                 $9, $10, $11, $12, $13, $14, 'published')`,
         [
-          organizerId, a.name, a.category, a.description, a.address,
-          a.longitude, a.latitude,
+          organizerId, establishmentId, a.name, a.category, a.description, demoPlace.address,
+          demoPlace.longitude, demoPlace.latitude,
           a.priceMin, a.priceMax, JSON.stringify(a.openingHours),
           a.pmr ?? false, a.stroller ?? false, a.websiteUrl ?? null,
         ],

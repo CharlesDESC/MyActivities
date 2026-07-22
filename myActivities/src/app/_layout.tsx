@@ -4,6 +4,7 @@ import { useColorScheme } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/context/auth';
 import { AnimatedSplashOverlay } from '@/components/splash/animated-icon';
+import { useRealtime } from '@/hooks/use-realtime';
 
 const AUTH_ROUTES = ['login', 'register', 'forgot-password', 'reset-password'];
 
@@ -11,6 +12,9 @@ function AppNavigator() {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  // Une connexion Socket.IO unique pour toute la session. La placer ici évite
+  // qu'un changement d'écran déconnecte la socket utilisée par le chat suivant.
+  useRealtime();
 
   useEffect(() => {
     if (isLoading) return;

@@ -12,6 +12,7 @@ import { WebContainer } from '@/components/web/web-container';
 import { OrganizerOnly } from '@/components/organizer/organizer-only';
 import { useTheme } from '@/hooks/use-theme';
 import { useActivityForm } from '@/hooks/use-activity-form';
+import { useEstablishment } from '@/hooks/use-establishment';
 import { CATEGORY_CONFIG, type ActivityCategory, type ActivityDetail } from '@/types/activity';
 
 const CATEGORIES = Object.keys(CATEGORY_CONFIG) as ActivityCategory[];
@@ -27,6 +28,7 @@ export function ActivityFormView({
 }) {
   const router = useRouter();
   const theme = useTheme();
+  const { establishment, isLoading: establishmentLoading, error: establishmentError } = useEstablishment();
   const { values, errors, isSubmitting, isEditing, setField, submit } = useActivityForm({ activityId, initial });
 
   async function handleSubmit() {
@@ -52,8 +54,21 @@ export function ActivityFormView({
               </ThemedText>
             </View>
 
-            {loading ? (
+            {loading || establishmentLoading ? (
               <ActivityIndicator style={styles.center} />
+            ) : establishmentError ? (
+              <View style={styles.center}>
+                <ThemedText type="small" themeColor="textSecondary">{establishmentError}</ThemedText>
+              </View>
+            ) : !establishment ? (
+              <ThemedView type="backgroundElement" style={styles.establishmentRequired}>
+                <Icon name="store" size={32} themeColor="textSecondary" />
+                <ThemedText type="subtitle">Établissement requis</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary" style={styles.establishmentRequiredText}>
+                  Créez votre fiche établissement avant de proposer une activité.
+                </ThemedText>
+                <Button label="Créer mon établissement" onPress={() => router.replace('/establishment' as never)} />
+              </ThemedView>
             ) : (
               <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
                 {errors.global && (
@@ -61,6 +76,14 @@ export function ActivityFormView({
                     <ThemedText type="small" style={styles.errorText}>{errors.global}</ThemedText>
                   </ThemedView>
                 )}
+
+                <ThemedView type="backgroundElement" style={styles.establishmentCard}>
+                  <Icon name="store" size={22} themeColor="textSecondary" />
+                  <View style={styles.establishmentCardText}>
+                    <ThemedText type="smallBold">{establishment.name}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">{establishment.address}</ThemedText>
+                  </View>
+                </ThemedView>
 
                 <Input label="Nom" placeholder="Nom de l’activité" value={values.name}
                   onChangeText={(v) => setField('name', v)} error={errors.name} autoCapitalize="sentences" />
@@ -85,18 +108,6 @@ export function ActivityFormView({
                 <Input label="Description" placeholder="Au moins 20 caractères" value={values.description}
                   onChangeText={(v) => setField('description', v)} error={errors.description}
                   multiline numberOfLines={4} style={styles.multiline} autoCapitalize="sentences" />
-
-                <Input label="Adresse" placeholder="12 rue…" value={values.address}
-                  onChangeText={(v) => setField('address', v)} error={errors.address} autoCapitalize="sentences" />
-
-                <View style={styles.rowFields}>
-                  <Input label="Latitude" placeholder="48.8566" value={values.latitude}
-                    onChangeText={(v) => setField('latitude', v)} error={errors.latitude}
-                    keyboardType="numbers-and-punctuation" style={styles.flex} />
-                  <Input label="Longitude" placeholder="2.3522" value={values.longitude}
-                    onChangeText={(v) => setField('longitude', v)} error={errors.longitude}
-                    keyboardType="numbers-and-punctuation" style={styles.flex} />
-                </View>
 
                 <View style={styles.rowFields}>
                   <Input label="Prix min (€)" placeholder="0" value={values.priceMin}

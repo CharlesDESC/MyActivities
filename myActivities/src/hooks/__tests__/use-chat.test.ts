@@ -89,8 +89,10 @@ describe('useChat — envoi', () => {
     const { result } = await renderHook(() => useChat({ recipientId: 'user-2' }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => { await result.current.send('Premier'); });
+    let sent: Message | undefined;
+    await act(async () => { sent = await result.current.send('Premier'); });
     expect(result.current.conversationId).toBe('conv-new');
+    expect(sent?.conversationId).toBe('conv-new');
   });
 
   it('sends to a group via the conversation id (no recipientId)', async () => {

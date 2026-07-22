@@ -22,6 +22,17 @@ jest.mock('@/hooks/use-theme', () => ({
 }));
 
 jest.mock('@/hooks/use-activity-form', () => ({ useActivityForm: jest.fn() }));
+jest.mock('@/hooks/use-establishment', () => ({
+  useEstablishment: () => ({
+    establishment: {
+      id: 'est-1',
+      name: 'Atelier des quais',
+      address: '10 rue des Arts, Paris',
+    },
+    isLoading: false,
+    error: null,
+  }),
+}));
 
 const mockUseActivityForm = useActivityForm as jest.Mock;
 const mockSetField = jest.fn();
@@ -31,9 +42,6 @@ const VALUES: ActivityFormState = {
   name: 'Atelier poterie',
   category: 'art',
   description: 'Une description suffisamment longue.',
-  address: '10 rue des Arts',
-  latitude: '48.85',
-  longitude: '2.35',
   priceMin: '15',
   priceMax: '30',
   websiteUrl: '',

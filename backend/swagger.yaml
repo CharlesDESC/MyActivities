@@ -61,6 +61,8 @@ tags:
     description: Avis et notation des activités
   - name: Organizers
     description: Espace organisateur — gestion des activités publiées
+  - name: Establishments
+    description: Fiche établissement unique d'un compte organisateur
   - name: Admin
     description: Administration et modération de la plateforme
   - name: Messaging
@@ -340,6 +342,10 @@ components:
         - $ref: '#/components/schemas/ActivitySummary'
         - type: object
           properties:
+            establishmentId:
+              type: string
+              format: uuid
+              nullable: true
             description:
               type: string
               example: Salle d'escalade indoor avec murs de 12m et blocs tous niveaux.
@@ -397,7 +403,8 @@ components:
 
     CreateActivityRequest:
       type: object
-      required: [name, category, description, address, latitude, longitude, priceMin, priceMax]
+      description: L'adresse et la position proviennent automatiquement de l'établissement du compte.
+      required: [name, category, description, priceMin, priceMax]
       properties:
         name:
           type: string
@@ -410,17 +417,6 @@ components:
           type: string
           minLength: 20
           maxLength: 2000
-        address:
-          type: string
-          example: 12 Rue de la République, 69001 Lyon
-        latitude:
-          type: number
-          format: float
-          example: 45.7640
-        longitude:
-          type: number
-          format: float
-          example: 4.8357
         priceMin:
           type: number
           format: float
@@ -464,14 +460,6 @@ components:
           $ref: '#/components/schemas/ActivityCategory'
         description:
           type: string
-        address:
-          type: string
-        latitude:
-          type: number
-          format: float
-        longitude:
-          type: number
-          format: float
         priceMin:
           type: number
           format: float
@@ -496,6 +484,93 @@ components:
           items:
             type: string
             format: uri
+
+    # ── Establishment ────────────────────────────
+    Establishment:
+      type: object
+      required: [id, name, address, latitude, longitude, mapboxId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Atelier des quais
+        address:
+          type: string
+          example: 12 rue de la République, 69001 Lyon, France
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        mapboxId:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        websiteUrl:
+          type: string
+          format: uri
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    EstablishmentWriteRequest:
+      type: object
+      required: [name, mapboxId]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        mapboxId:
+          type: string
+          description: Suggestion sélectionnée, résolue avec permanent=true côté serveur.
+        phone:
+          type: string
+          nullable: true
+        websiteUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    EstablishmentUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        mapboxId:
+          type: string
+          description: Nouvelle suggestion sélectionnée. Si elle est absente, l'adresse actuelle est conservée.
+        phone:
+          type: string
+          nullable: true
+        websiteUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    AddressSuggestion:
+      type: object
+      properties:
+        mapboxId:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
 
     # ── Planning ─────────────────────────────────
     PlanningEntry:
@@ -1745,6 +1820,150 @@ paths:
   # ORGANIZERS
   # ══════════════════════════════
 
+  /establishments:
+    get:
+      tags: [Establishments]
+      summary: Obtenir l'établissement du compte
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Collection contenant zéro ou un établissement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    maxItems: 1
+                    items:
+                      $ref: '#/components/schemas/Establishment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Establishments]
+      summary: Créer l'établissement unique du compte
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstablishmentWriteRequest'
+      responses:
+        '201':
+          description: Établissement créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Establishment'
+        '409':
+          description: Le compte possède déjà un établissement
+
+  /establishments/prefill:
+    get:
+      tags: [Establishments]
+      summary: Préremplir la fiche depuis le SIRET du compte
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Données publiques indicatives issues de SIRENE
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  address:
+                    type: string
+                  latitude:
+                    type: number
+                    nullable: true
+                  longitude:
+                    type: number
+                    nullable: true
+
+  /establishments/address-search:
+    get:
+      tags: [Establishments]
+      summary: Rechercher temporairement une adresse Mapbox
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 3
+      responses:
+        '200':
+          description: Suggestions temporaires non enregistrées
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AddressSuggestion'
+
+  /establishments/{establishmentId}:
+    parameters:
+      - name: establishmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Establishments]
+      summary: Consulter son établissement
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Établissement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Establishment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Establishments]
+      summary: Modifier son établissement
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstablishmentUpdateRequest'
+      responses:
+        '200':
+          description: Établissement modifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Establishment'
+    delete:
+      tags: [Establishments]
+      summary: Supprimer son établissement
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Établissement supprimé
+
   /organizers/me/activities:
     get:
       tags: [Organizers]
@@ -2599,4 +2818,3 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-

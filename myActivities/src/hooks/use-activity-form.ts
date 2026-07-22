@@ -8,9 +8,6 @@ export type ActivityFormState = {
   name: string;
   category: ActivityCategory;
   description: string;
-  address: string;
-  latitude: string;
-  longitude: string;
   priceMin: string;
   priceMax: string;
   websiteUrl: string;
@@ -21,8 +18,7 @@ export type ActivityFormState = {
 type FormErrors = Partial<Record<keyof ActivityFormState | 'global', string>>;
 
 const EMPTY: ActivityFormState = {
-  name: '', category: 'autre', description: '', address: '',
-  latitude: '', longitude: '', priceMin: '', priceMax: '',
+  name: '', category: 'autre', description: '', priceMin: '', priceMax: '',
   websiteUrl: '', pmr: false, stroller: false,
 };
 
@@ -31,9 +27,6 @@ function fromActivity(a: ActivityDetail): ActivityFormState {
     name: a.name,
     category: a.category,
     description: a.description,
-    address: a.address,
-    latitude: String(a.latitude),
-    longitude: String(a.longitude),
     priceMin: String(a.priceMin),
     priceMax: String(a.priceMax),
     websiteUrl: a.websiteUrl ?? '',
@@ -66,13 +59,6 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
     const next: FormErrors = {};
     if (values.name.trim().length < 3) next.name = 'Au moins 3 caractères';
     if (values.description.trim().length < 20) next.description = 'Au moins 20 caractères';
-    if (!values.address.trim()) next.address = "L'adresse est requise";
-
-    const lat = Number(values.latitude);
-    const lng = Number(values.longitude);
-    if (!values.latitude || Number.isNaN(lat) || lat < -90 || lat > 90) next.latitude = 'Latitude invalide (-90 à 90)';
-    if (!values.longitude || Number.isNaN(lng) || lng < -180 || lng > 180) next.longitude = 'Longitude invalide (-180 à 180)';
-
     const min = Number(values.priceMin);
     const max = Number(values.priceMax);
     if (values.priceMin === '' || Number.isNaN(min) || min < 0) next.priceMin = 'Prix invalide';
@@ -91,9 +77,6 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
       name: values.name.trim(),
       category: values.category,
       description: values.description.trim(),
-      address: values.address.trim(),
-      latitude: Number(values.latitude),
-      longitude: Number(values.longitude),
       priceMin: Number(values.priceMin),
       priceMax: Number(values.priceMax),
       accessibility: { pmr: values.pmr, stroller: values.stroller },

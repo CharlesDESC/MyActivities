@@ -9,7 +9,6 @@ import { ThemedView } from '@/components/ui/themed-view';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
 import { useConversations } from '@/hooks/use-conversations';
-import { useRealtime } from '@/hooks/use-realtime';
 import type { Conversation } from '@/types/message';
 
 function formatTime(iso: string): string {
@@ -30,7 +29,6 @@ function conversationName(c: Conversation): string {
 export default function ConversationsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  useRealtime(); // maintient la connexion socket
   const { conversations, isLoading, error, refresh } = useConversations();
 
   function openConversation(c: Conversation) {

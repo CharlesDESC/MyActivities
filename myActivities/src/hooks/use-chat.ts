@@ -60,7 +60,7 @@ export function useChat({ conversationId: initialId, recipientId }: UseChatParam
 
   const send = useCallback(async (content: string) => {
     const trimmed = content.trim();
-    if (!trimmed) return;
+    if (!trimmed) return undefined;
     setIsSending(true);
     setError(null);
     const client = getRealtimeClient();
@@ -89,6 +89,7 @@ export function useChat({ conversationId: initialId, recipientId }: UseChatParam
         setConversationId(message.conversationId);
       }
       setMessages((prev) => mergeMessages(prev, [message]));
+      return message;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Envoi impossible');
       throw err;

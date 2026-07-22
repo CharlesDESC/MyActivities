@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { ActivityIndicator, FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { styles } from '@/styles/app/dashboard';
 import { ThemedText } from '@/components/ui/themed-text';
@@ -9,6 +11,7 @@ import { Icon } from '@/components/ui/icon';
 import { WebContainer } from '@/components/web/web-container';
 import { OrganizerOnly } from '@/components/organizer/organizer-only';
 import { useOrganizerStats } from '@/hooks/use-organizer-stats';
+import { useEstablishment } from '@/hooks/use-establishment';
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -20,7 +23,15 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 }
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const { stats, totals, isLoading, error, refresh } = useOrganizerStats();
+  const { establishment, isLoading: establishmentLoading, error: establishmentError } = useEstablishment();
+
+  useEffect(() => {
+    if (!establishmentLoading && !establishmentError && !establishment) {
+      router.replace('/establishment' as never);
+    }
+  }, [establishment, establishmentError, establishmentLoading, router]);
 
   return (
     <ThemedView style={styles.container}>
@@ -29,7 +40,13 @@ export default function DashboardScreen() {
           <WebContainer>
             <ThemedText type="title" style={styles.title}>Tableau de bord</ThemedText>
 
-            {error ? (
+            {establishmentLoading || (!establishment && !establishmentError) ? (
+              <ActivityIndicator style={styles.center} />
+            ) : establishmentError ? (
+              <View style={styles.center}>
+                <ThemedText type="small" themeColor="textSecondary">{establishmentError}</ThemedText>
+              </View>
+            ) : error ? (
               <View style={styles.center}>
                 <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
                 <Button label="Réessayer" variant="ghost" onPress={refresh} />

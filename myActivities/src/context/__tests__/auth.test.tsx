@@ -143,7 +143,7 @@ describe('AuthProvider — déconnexion', () => {
 
     await act(async () => { await result.current.logout(); });
 
-    expect(mockPost).toHaveBeenLastCalledWith('/auth/logout');
+    expect(mockPost).toHaveBeenLastCalledWith('/auth/logout', { refreshToken: 'refresh' });
     expect(result.current.user).toBeNull();
     expect(await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN)).toBeNull();
     expect(await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN)).toBeNull();

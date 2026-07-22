@@ -117,9 +117,10 @@ describe('activity.service — getActivity', () => {
 describe('activity.service — createActivity', () => {
   const data = {
     name: 'Escalade', category: 'sport' as ActivityCategory, description: 'Desc',
-    address: '1 rue test', latitude: 48.85, longitude: 2.35,
     priceMin: 10, priceMax: 30,
   };
+  // Établissement possédé par 'org-1' — adresse/position héritées par l'activité.
+  const ownedEstablishment = { id: 'est-1', organizerId: 'org-1', address: '1 rue test', latitude: 48.85, longitude: 2.35 };
 
   it('creates activity and returns the full detail', async () => {
     const detail = { ...mockActivity, id: 'act-new', name: data.name, status: 'pending', organizer: { id: 'org-1', pseudo: 'Org' }, photos: [] };
@@ -131,13 +132,24 @@ describe('activity.service — createActivity', () => {
       release: jest.fn(),
     };
     mockConnect.mockResolvedValue(mockClient);
-    mockQuery.mockResolvedValueOnce({ rows: [detail] });        // fetchActivityDetail
+    mockQuery
+      .mockResolvedValueOnce({ rows: [ownedEstablishment] })    // resolveOrganizerEstablishment
+      .mockResolvedValueOnce({ rows: [detail] });               // fetchActivityDetail
 
     const result = await activityService.createActivity('org-1', data);
     expect(result.name).toBe('Escalade');
     expect(result.status).toBe('pending');
     expect(result.organizer).toMatchObject({ id: 'org-1' });
+    // L'adresse/position insérées proviennent bien de l'établissement.
+    const insertParams = mockClient.query.mock.calls[1][1] as unknown[];
+    expect(insertParams).toEqual(expect.arrayContaining(['1 rue test', 2.35, 48.85, 'est-1']));
     expect(mockClient.release).toHaveBeenCalled();
+  });
+
+  it('requires the account establishment', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await expect(activityService.createActivity('org-1', data)).rejects.toMatchObject({ statusCode: 409, code: 'ESTABLISHMENT_REQUIRED' });
+    expect(mockConnect).not.toHaveBeenCalled();
   });
 
   it('inserts photos when provided', async () => {
@@ -151,7 +163,9 @@ describe('activity.service — createActivity', () => {
       release: jest.fn(),
     };
     mockConnect.mockResolvedValue(mockClient);
-    mockQuery.mockResolvedValueOnce({ rows: [detail] });        // fetchActivityDetail
+    mockQuery
+      .mockResolvedValueOnce({ rows: [ownedEstablishment] })    // resolveOrganizerEstablishment
+      .mockResolvedValueOnce({ rows: [detail] });               // fetchActivityDetail
 
     const result = await activityService.createActivity('org-1', {
       ...data, photos: ['https://cdn.test/1.jpg', 'https://cdn.test/2.jpg'],
@@ -173,6 +187,7 @@ describe('activity.service — createActivity', () => {
       release: jest.fn(),
     };
     mockConnect.mockResolvedValue(mockClient);
+    mockQuery.mockResolvedValueOnce({ rows: [ownedEstablishment] });  // resolveOrganizerEstablishment
 
     await expect(activityService.createActivity('org-1', data)).rejects.toThrow('DB error');
     expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK');
@@ -205,14 +220,13 @@ describe('activity.service — updateActivity', () => {
     expect(result.name).toBe('New');
   });
 
-  it('updates optional fields (position, horaires, accessibilité, site web)', async () => {
+  it('updates optional fields (horaires, accessibilité, site web)', async () => {
     mockQuery
-      .mockResolvedValueOnce({ rowCount: 1, rows: [{ organizer_id: 'user-1', status: 'published' }] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ organizer_id: 'user-1', status: 'published' }] })  // existing
       .mockResolvedValueOnce({ rows: [] })   // UPDATE
       .mockResolvedValueOnce({ rows: [mockActivity] }); // fetchActivityDetail
 
     await activityService.updateActivity('act-1', 'user-1', 'organizer', {
-      latitude: 45.76, longitude: 4.83,
       openingHours: { monday: '09:00-18:00' },
       accessibility: { pmr: true, stroller: false },
       websiteUrl: 'https://exemple.fr',
@@ -220,7 +234,6 @@ describe('activity.service — updateActivity', () => {
     });
 
     const sql = mockQuery.mock.calls[1][0] as string;
-    expect(sql).toContain('location = ST_MakePoint');
     expect(sql).toContain('opening_hours');
     expect(sql).toContain('accessibility_pmr');
     expect(sql).toContain('website_url');

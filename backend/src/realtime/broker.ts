@@ -42,16 +42,30 @@ export class RedisBroker implements MessageBroker {
     private readonly pub: Redis,
     private readonly sub: Redis,
   ) {
-    this.sub.subscribe(REALTIME_CHANNEL).catch(() => {
-      /* Redis indisponible : on fonctionnera en mode in-process. */
+    // Avec `lazyConnect`, SUBSCRIBE ne doit être envoyé qu'une fois la connexion
+    // prête. Sinon, `enableOfflineQueue: false` abandonne silencieusement la
+    // commande initiale et aucun événement n'est ensuite rediffusé.
+    this.sub.on('ready', () => {
+      void this.sub.subscribe(REALTIME_CHANNEL).catch(() => {
+        /* Redis indisponible : on fonctionnera en mode in-process. */
+      });
     });
     this.sub.on('message', (_channel: string, raw: string) => {
       const event = safeParse(raw);
       if (event) this.local.emit(LOCAL_EVENT, event);
     });
+
+    // Connexions explicites : le publisher et le subscriber restent séparés,
+    // comme l'exige Redis Pub/Sub. Ioredis gère ensuite les reconnexions.
+    void this.pub.connect().catch(() => { /* repli local dans publish */ });
+    void this.sub.connect().catch(() => { /* repli local dans publish */ });
   }
 
   async publish(event: RealtimeEvent): Promise<void> {
+    if (this.pub.status !== 'ready') {
+      this.local.emit(LOCAL_EVENT, event);
+      return;
+    }
     try {
       await this.pub.publish(REALTIME_CHANNEL, JSON.stringify(event));
     } catch {

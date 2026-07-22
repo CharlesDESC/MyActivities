@@ -27,13 +27,12 @@ export const OrganizerActivitiesQuerySchema = PaginationQuerySchema.extend({
   status: z.enum(['pending', 'published', 'rejected', 'archived']).optional(),
 });
 
+// L'adresse et la position ne sont plus saisies sur l'activité : elles sont
+// héritées de l'établissement unique du compte, copiées côté serveur.
 const activityFields = z.object({
   name: z.string().min(3).max(100),
   category: categoryEnum,
   description: z.string().min(20).max(2000),
-  address: z.string().min(1).max(500),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
   priceMin: z.number().min(0),
   priceMax: z.number().min(0),
   openingHours: z.record(z.string()).optional(),
@@ -42,19 +41,16 @@ const activityFields = z.object({
   photos: z.array(z.string().url()).max(10).optional(),
 });
 
-export const CreateActivitySchema = activityFields.refine(
-  (d) => d.priceMin <= d.priceMax,
-  { message: 'priceMin doit être inférieur ou égal à priceMax', path: ['priceMin'] },
-);
+export const CreateActivitySchema = activityFields
+  .refine(
+    (d) => d.priceMin <= d.priceMax,
+    { message: 'priceMin doit être inférieur ou égal à priceMax', path: ['priceMin'] },
+  );
 
 export const UpdateActivitySchema = activityFields.partial()
   .refine(
     (d) => Object.keys(d).length > 0,
     { message: 'Aucun champ à mettre à jour' },
-  )
-  .refine(
-    (d) => (d.latitude === undefined) === (d.longitude === undefined),
-    { message: 'latitude et longitude doivent être fournies ensemble', path: ['latitude'] },
   )
   .refine(
     (d) => d.priceMin === undefined || d.priceMax === undefined || d.priceMin <= d.priceMax,

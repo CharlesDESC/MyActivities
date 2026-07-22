@@ -35,6 +35,11 @@ export const config = {
 
   appUrl: process.env.APP_URL ?? 'http://localhost:8081',
 
+  mapbox: {
+    // Secret serveur utilisé pour les appels Geocoding permanents.
+    accessToken: process.env.MAPBOX_ACCESS_TOKEN ?? '',
+  },
+
   // Stockage des photos d'activités. Fournisseur interchangeable (couche abstraite) :
   // 'local' (disque, MVP/dev) ou un futur adaptateur cloud (Cloudinary/S3) en prod.
   storage: {

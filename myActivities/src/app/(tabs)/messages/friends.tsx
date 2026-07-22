@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { useTheme } from '@/hooks/use-theme';
 import { useFriends } from '@/hooks/use-friends';
 import { useUserSearch } from '@/hooks/use-user-search';
-import { useRealtime } from '@/hooks/use-realtime';
 
 type Tab = 'friends' | 'requests' | 'search';
 
@@ -32,7 +31,6 @@ function SegTab({ label, badge, active, onPress }: { label: string; badge?: numb
 export default function FriendsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  useRealtime();
   const { friends, incoming, outgoing, isLoading, refresh, sendRequest, accept, decline, remove } = useFriends();
   const { query, setQuery, results, isSearching } = useUserSearch();
   const [tab, setTab] = useState<Tab>('friends');

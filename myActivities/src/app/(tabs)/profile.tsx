@@ -1,4 +1,4 @@
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -21,12 +21,20 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   function handleLogout() {
+    if (Platform.OS === 'web') {
+      const confirmed = globalThis.confirm(
+        'Se déconnecter ? Tu devras te reconnecter pour accéder à ton compte.',
+      );
+      if (confirmed) void logout();
+      return;
+    }
+
     Alert.alert(
       'Se déconnecter ?',
       'Tu devras te reconnecter pour accéder à ton compte.',
       [
         { text: 'Annuler', style: 'cancel' },
-        { text: 'Se déconnecter', style: 'destructive', onPress: logout },
+        { text: 'Se déconnecter', style: 'destructive', onPress: () => { void logout(); } },
       ],
     );
   }
@@ -79,6 +87,21 @@ export default function ProfileScreen() {
             </View>
           </ThemedView>
 
+          {(user.role === 'organizer' || user.role === 'admin') && (
+            <Pressable
+              onPress={() => router.push('/establishment' as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Ouvrir la fiche établissement">
+              <ThemedView type="backgroundElement" style={styles.row}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <Icon name="storefront" size={18} />
+                  <ThemedText type="small">Mon établissement</ThemedText>
+                </View>
+                <Icon name="chevron-right" size={20} themeColor="textSecondary" />
+              </ThemedView>
+            </Pressable>
+          )}
+
           {/* Messagerie */}
           <Pressable onPress={() => router.push('/messages')} accessibilityRole="button" accessibilityLabel="Ouvrir la messagerie">
             <ThemedView type="backgroundElement" style={styles.row}>
@@ -92,18 +115,18 @@ export default function ProfileScreen() {
 
           {/* Déconnexion */}
           <View style={styles.logoutRow}>
-            <ThemedView
-              type="backgroundElement"
-              style={styles.row}>
-              <ThemedText
-                type="small"
-                style={{ color: '#EF4444', fontWeight: '600', flex: 1 }}
-                onPress={handleLogout}
-                accessibilityRole="button"
-                accessibilityLabel="Se déconnecter">
-                Se déconnecter
-              </ThemedText>
-            </ThemedView>
+            <Pressable
+              onPress={handleLogout}
+              accessibilityRole="button"
+              accessibilityLabel="Se déconnecter">
+              <ThemedView type="backgroundElement" style={styles.row}>
+                <ThemedText
+                  type="small"
+                  style={{ color: '#EF4444', fontWeight: '600', flex: 1 }}>
+                  Se déconnecter
+                </ThemedText>
+              </ThemedView>
+            </Pressable>
           </View>
 
         </ScrollView>

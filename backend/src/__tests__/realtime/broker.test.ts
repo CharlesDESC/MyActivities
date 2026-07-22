@@ -2,6 +2,12 @@
 jest.mock('ioredis', () => {
   const { EventEmitter } = require('node:events');
   return class MockRedis extends EventEmitter {
+    status = 'wait';
+    connect = jest.fn(() => {
+      this.status = 'ready';
+      this.emit('ready');
+      return Promise.resolve();
+    });
     subscribe = jest.fn().mockResolvedValue(1);
     publish = jest.fn().mockResolvedValue(1);
     quit = jest.fn().mockResolvedValue('OK');
@@ -14,6 +20,12 @@ import { REALTIME_CHANNEL, RealtimeEvent } from '../../realtime/events';
 
 function makeFakeRedis() {
   const ee = new EventEmitter() as any;
+  ee.status = 'wait';
+  ee.connect = jest.fn(() => {
+    ee.status = 'ready';
+    ee.emit('ready');
+    return Promise.resolve();
+  });
   ee.subscribe = jest.fn().mockResolvedValue(1);
   ee.publish = jest.fn().mockResolvedValue(1);
   ee.quit = jest.fn().mockResolvedValue('OK');
@@ -73,6 +85,20 @@ describe('RedisBroker', () => {
     broker.subscribe(handler);
 
     await broker.publish(sampleEvent);
+    expect(handler).toHaveBeenCalledWith(sampleEvent);
+  });
+
+  it('falls back locally while the Redis publisher is not ready', async () => {
+    const pub = makeFakeRedis();
+    const sub = makeFakeRedis();
+    const broker = new RedisBroker(pub, sub);
+    const handler = jest.fn();
+    broker.subscribe(handler);
+    pub.status = 'connecting';
+
+    await broker.publish(sampleEvent);
+
+    expect(pub.publish).not.toHaveBeenCalled();
     expect(handler).toHaveBeenCalledWith(sampleEvent);
   });
 

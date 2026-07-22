@@ -91,13 +91,20 @@ export const styles = StyleSheet.create({
   bubbleTime: { fontSize: 11, marginTop: Spacing.half },
 
   // ── Barre de saisie ──────────────────────
+  composer: {
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.three,
+  },
+  sendError: {
+    color: '#EF4444',
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.one,
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: Spacing.two,
     paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
   },
   input: {
     flex: 1,

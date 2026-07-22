@@ -30,6 +30,22 @@ export const styles = StyleSheet.create({
   },
   errorText: { color: '#EF4444' },
 
+  establishmentRequired: {
+    alignItems: 'center',
+    gap: Spacing.two,
+    padding: Spacing.four,
+    borderRadius: 16,
+  },
+  establishmentRequiredText: { textAlign: 'center' },
+  establishmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    padding: Spacing.three,
+    borderRadius: 12,
+  },
+  establishmentCardText: { flex: 1, gap: Spacing.half },
+
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   pill: {
     paddingHorizontal: Spacing.three,

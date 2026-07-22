@@ -4,9 +4,6 @@ const validCreate = {
   name: 'Escalade en salle',
   category: 'sport',
   description: 'Une salle d\'escalade avec des murs de 12m et des blocs tous niveaux.',
-  address: '1 rue du Test, Lyon',
-  latitude: 45.76,
-  longitude: 4.83,
   priceMin: 8,
   priceMax: 15,
 };
@@ -43,20 +40,12 @@ describe('UpdateActivitySchema', () => {
     expect(() => UpdateActivitySchema.parse({ name: 'Nouveau nom' })).not.toThrow();
   });
 
+  it('does not accept an establishment-only change', () => {
+    expect(() => UpdateActivitySchema.parse({ establishmentId: '11111111-1111-1111-1111-111111111111' })).toThrow();
+  });
+
   it('rejects an empty body', () => {
     expect(() => UpdateActivitySchema.parse({})).toThrow();
-  });
-
-  it('rejects latitude without longitude', () => {
-    expect(() => UpdateActivitySchema.parse({ latitude: 45.76 })).toThrow();
-  });
-
-  it('rejects longitude without latitude', () => {
-    expect(() => UpdateActivitySchema.parse({ longitude: 4.83 })).toThrow();
-  });
-
-  it('accepts latitude and longitude together', () => {
-    expect(() => UpdateActivitySchema.parse({ latitude: 45.76, longitude: 4.83 })).not.toThrow();
   });
 
   it('rejects priceMin greater than priceMax', () => {

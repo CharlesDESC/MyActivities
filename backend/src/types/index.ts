@@ -1,5 +1,6 @@
 export * from './user';
 export * from './activity';
+export * from './establishment';
 export * from './review';
 export * from './message';
 export * from './friend';

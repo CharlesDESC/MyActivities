@@ -6,6 +6,7 @@ import {
   OrganizerStats, PaginatedResult, UserRole,
 } from '../types';
 import { ListActivitiesInput, CreateActivityInput, UpdateActivityInput } from '../schemas/activity';
+import { resolveOrganizerEstablishment } from './establishment.service';
 
 const SORT_MAP: Record<string, string> = {
   distance: 'distance ASC',
@@ -23,7 +24,8 @@ const ACTIVITY_DETAIL_SELECT = `
     a.price_min AS "priceMin", a.price_max AS "priceMax",
     a.opening_hours AS "openingHours",
     json_build_object('pmr', a.accessibility_pmr, 'stroller', a.accessibility_stroller) AS accessibility,
-    a.website_url AS "websiteUrl", a.status, a.admin_note AS "adminNote",
+    a.website_url AS "websiteUrl", a.establishment_id AS "establishmentId",
+    a.status, a.admin_note AS "adminNote",
     a.created_at AS "createdAt", a.updated_at AS "updatedAt",
     ST_Y(a.location::geometry) AS latitude,
     ST_X(a.location::geometry) AS longitude,
@@ -125,6 +127,10 @@ export async function createActivity(
   organizerId: string,
   data: CreateActivityInput,
 ): Promise<ActivityDetail> {
+  // L'adresse et la position sont héritées de l'établissement (dont on vérifie
+  // au passage qu'il appartient bien à l'organisateur).
+  const place = await resolveOrganizerEstablishment(organizerId);
+
   let activityId: string;
   const client = await pool.connect();
   try {
@@ -133,17 +139,19 @@ export async function createActivity(
     const { rows } = await client.query<Pick<ActivityRow, 'id'>>(
       `INSERT INTO activities
          (organizer_id, name, category, description, address, location,
-          price_min, price_max, opening_hours, accessibility_pmr, accessibility_stroller, website_url)
-       VALUES ($1, $2, $3, $4, $5, ST_MakePoint($6, $7)::geography, $8, $9, $10, $11, $12, $13)
+          price_min, price_max, opening_hours, accessibility_pmr, accessibility_stroller,
+          website_url, establishment_id)
+       VALUES ($1, $2, $3, $4, $5, ST_MakePoint($6, $7)::geography, $8, $9, $10, $11, $12, $13, $14)
        RETURNING id`,
       [
-        organizerId, data.name, data.category, data.description, data.address,
-        data.longitude, data.latitude,
+        organizerId, data.name, data.category, data.description, place.address,
+        place.longitude, place.latitude,
         data.priceMin, data.priceMax,
         data.openingHours ? JSON.stringify(data.openingHours) : null,
         data.accessibility?.pmr ?? false,
         data.accessibility?.stroller ?? false,
         data.websiteUrl ?? null,
+        place.id,
       ],
     );
 
@@ -192,11 +200,6 @@ export async function updateActivity(
   if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
   if (data.category !== undefined) { fields.push(`category = $${idx++}`); values.push(data.category); }
   if (data.description !== undefined) { fields.push(`description = $${idx++}`); values.push(data.description); }
-  if (data.address !== undefined) { fields.push(`address = $${idx++}`); values.push(data.address); }
-  if (data.latitude !== undefined && data.longitude !== undefined) {
-    fields.push(`location = ST_MakePoint($${idx++}, $${idx++})::geography`);
-    values.push(data.longitude, data.latitude);
-  }
   if (data.priceMin !== undefined) { fields.push(`price_min = $${idx++}`); values.push(data.priceMin); }
   if (data.priceMax !== undefined) { fields.push(`price_max = $${idx++}`); values.push(data.priceMax); }
   if (data.openingHours !== undefined) { fields.push(`opening_hours = $${idx++}`); values.push(JSON.stringify(data.openingHours)); }
@@ -206,7 +209,7 @@ export async function updateActivity(
   }
   if (data.websiteUrl !== undefined) { fields.push(`website_url = $${idx++}`); values.push(data.websiteUrl); }
 
-  const keyFields: (keyof UpdateActivityInput)[] = ['name', 'category', 'description', 'address', 'latitude', 'longitude'];
+  const keyFields: (keyof UpdateActivityInput)[] = ['name', 'category', 'description'];
   const touchedKey = keyFields.some((k) => data[k] !== undefined);
   if (touchedKey && role !== 'admin') {
     fields.push(`status = 'pending'`);

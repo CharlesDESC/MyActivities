@@ -11,6 +11,7 @@ export type SortActivities = 'distance' | 'rating' | 'price_asc' | 'price_desc';
 export interface ActivityRow {
   id: string;
   organizer_id: string;
+  establishment_id: string | null;
   name: string;
   category: ActivityCategory;
   description: string;
@@ -50,6 +51,7 @@ export interface ActivityListItem {
 /** Résultat de GET /activities/:id (détail complet) — schéma Swagger `ActivityDetail` */
 export interface ActivityDetail extends Omit<ActivityListItem, 'distance'> {
   description: string;
+  establishmentId: string | null;
   openingHours: Record<string, string> | null;
   accessibility: { pmr: boolean; stroller: boolean };
   websiteUrl: string | null;
