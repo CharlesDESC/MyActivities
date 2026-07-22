@@ -53,6 +53,15 @@ beforeEach(() => {
 });
 
 describe('ChatScreen', () => {
+  it('always returns to the conversations list', async () => {
+    await render(<ChatScreen />);
+
+    await fireEvent.press(screen.getByLabelText('Retour aux conversations'));
+
+    expect(mockReplace).toHaveBeenCalledWith('/messages');
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
   it('replaces the new route with the persisted conversation after the first message', async () => {
     await render(<ChatScreen />);
 

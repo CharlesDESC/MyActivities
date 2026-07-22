@@ -90,7 +90,8 @@ export async function handleRead(
     const receipt = await messageService.markConversationRead(user.sub, conversationId);
     await broker.publish({
       type: SOCKET_EVENTS.CONVERSATION_READ,
-      recipients: receipt.recipientIds,
+      // Le lecteur reçoit aussi l'événement pour mettre à jour son badge local.
+      recipients: [...receipt.recipientIds, receipt.readerId],
       payload: { conversationId: receipt.conversationId, readerId: receipt.readerId },
     });
     ack?.({ ok: true, data: { conversationId, updated: receipt.updated } });

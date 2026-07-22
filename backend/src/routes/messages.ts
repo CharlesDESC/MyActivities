@@ -39,7 +39,7 @@ router.post('/conversations/:conversationId/read', authenticate, async (req: Req
     const receipt = await messageService.markConversationRead(req.user!.sub, req.params.conversationId);
     await publishRealtime({
       type: SOCKET_EVENTS.CONVERSATION_READ,
-      recipients: receipt.recipientIds,
+      recipients: [...receipt.recipientIds, receipt.readerId],
       payload: { conversationId: receipt.conversationId, readerId: receipt.readerId },
     });
     res.json({ conversationId: receipt.conversationId, updated: receipt.updated });

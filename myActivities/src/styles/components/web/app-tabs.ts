@@ -43,4 +43,23 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     borderRadius: 999,
   },
+  tabIcon: { position: 'relative' },
+  messageBadge: {
+    position: 'absolute',
+    top: -9,
+    right: -11,
+    minWidth: 17,
+    height: 17,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+  },
+  messageBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '700',
+  },
 });

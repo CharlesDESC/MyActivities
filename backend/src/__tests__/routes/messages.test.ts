@@ -66,7 +66,7 @@ describe('GET /v1/messages/conversations/:conversationId', () => {
 });
 
 describe('POST /v1/messages/conversations/:conversationId/read', () => {
-  it('marks the conversation read and notifies the other participants', async () => {
+  it('marks the conversation read and notifies participants including the reader', async () => {
     mock.markConversationRead.mockResolvedValue({
       conversationId: CONV, updated: 2, readerId: 'user-1', recipientIds: [RECIPIENT],
     });
@@ -75,7 +75,10 @@ describe('POST /v1/messages/conversations/:conversationId/read', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ conversationId: CONV, updated: 2 });
-    expect(publishRealtime).toHaveBeenCalledWith(expect.objectContaining({ type: 'conversation:read' }));
+    expect(publishRealtime).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'conversation:read',
+      recipients: [RECIPIENT, 'user-1'],
+    }));
   });
 });
 

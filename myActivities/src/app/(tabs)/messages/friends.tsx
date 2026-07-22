@@ -49,7 +49,7 @@ export default function FriendsScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
+          <Pressable onPress={() => router.replace('/messages')} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour aux conversations">
             <Icon name="arrow-back" size={24} />
           </Pressable>
           <ThemedText type="subtitle" style={styles.headerTitle}>Amis</ThemedText>

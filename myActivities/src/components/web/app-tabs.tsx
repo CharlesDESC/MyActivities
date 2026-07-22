@@ -13,8 +13,11 @@ import { styles } from '@/styles/components/web/app-tabs';
 
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
+import { useUnreadMessageCount } from '@/hooks/use-unread-message-count';
 
 export default function AppTabs() {
+  const unreadCount = useUnreadMessageCount();
+
   return (
     <Tabs style={styles.shell}>
       <TabList asChild>
@@ -30,7 +33,9 @@ export default function AppTabs() {
             </TabButton>
           </TabTrigger>
           <TabTrigger name="messages" href="/messages" asChild>
-            <TabButton icon={<SymbolView name={{ ios: 'message', web: 'chat' }} size={16} />}>
+            <TabButton
+              icon={<SymbolView name={{ ios: 'message', web: 'chat' }} size={16} />}
+              badge={unreadCount}>
               Messages
             </TabButton>
           </TabTrigger>
@@ -47,15 +52,24 @@ export default function AppTabs() {
   );
 }
 
-type TabButtonProps = TabTriggerSlotProps & { icon: React.ReactNode };
+type TabButtonProps = TabTriggerSlotProps & { icon: React.ReactNode; badge?: number };
 
-function TabButton({ children, isFocused, icon, ...props }: TabButtonProps) {
+function TabButton({ children, isFocused, icon, badge = 0, ...props }: TabButtonProps) {
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView
         type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
         style={styles.tabButtonView}>
-        {icon}
+        <View style={styles.tabIcon}>
+          {icon}
+          {badge > 0 && (
+            <View style={styles.messageBadge}>
+              <ThemedText style={styles.messageBadgeText}>
+                {badge > 99 ? '99+' : badge}
+              </ThemedText>
+            </View>
+          )}
+        </View>
         <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
           {children}
         </ThemedText>

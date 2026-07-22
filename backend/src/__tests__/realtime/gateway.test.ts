@@ -111,7 +111,7 @@ describe('handleSendGroup', () => {
 describe('handleRead', () => {
   const broker = { publish: jest.fn().mockResolvedValue(undefined) } as any;
 
-  it('marks read, notifies the other participant and acknowledges', async () => {
+  it('marks read, notifies every participant including the reader and acknowledges', async () => {
     mock.markConversationRead.mockResolvedValue({
       conversationId: CONV, updated: 2, readerId: 'user-1', recipientIds: [RECIPIENT],
     });
@@ -120,7 +120,10 @@ describe('handleRead', () => {
     await handleRead(broker, user, { conversationId: CONV }, ack);
 
     expect(broker.publish).toHaveBeenCalledWith(
-      expect.objectContaining({ type: SOCKET_EVENTS.CONVERSATION_READ, recipients: [RECIPIENT] }),
+      expect.objectContaining({
+        type: SOCKET_EVENTS.CONVERSATION_READ,
+        recipients: [RECIPIENT, 'user-1'],
+      }),
     );
     expect(ack).toHaveBeenCalledWith({ ok: true, data: { conversationId: CONV, updated: 2 } });
   });

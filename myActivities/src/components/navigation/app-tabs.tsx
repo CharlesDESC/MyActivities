@@ -2,10 +2,12 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useColorScheme } from 'react-native';
 
 import { Colors } from '@/constants/theme';
+import { useUnreadMessageCount } from '@/hooks/use-unread-message-count';
 
 export default function AppTabs() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const unreadCount = useUnreadMessageCount();
 
   return (
     <NativeTabs
@@ -45,6 +47,9 @@ export default function AppTabs() {
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"
         />
+        <NativeTabs.Trigger.Badge hidden={unreadCount === 0}>
+          {unreadCount > 99 ? '99+' : String(unreadCount)}
+        </NativeTabs.Trigger.Badge>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
