@@ -1,0 +1,8 @@
+{
+  "name": "myactivities-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:performance": "docker run --rm -i grafana/k6 run - < tests/performance/myactivities-smoke.js"
+  }
+}
