@@ -308,6 +308,3 @@ partir de `backend/Dockerfile` (multi-stage, `node:20-alpine`).
 
 Projet réalisé dans le cadre du titre RNCP 39583 « Expert en Développement Logiciel ».
 
-## Licence
-
-Projet à but pédagogique, tous droits réservés (`UNLICENSED`).
