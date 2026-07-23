@@ -24,6 +24,13 @@ import friendRoutes from './routes/friends';
 
 const app = express();
 
+// express-rate-limit s'appuie sur req.ip. Render transmet l'adresse cliente
+// via X-Forwarded-For : le nombre de proxys approuvés doit être défini avant
+// l'installation des limiters. Une valeur numérique évite le mode permissif.
+if (config.trustProxyHops > 0) {
+  app.set('trust proxy', config.trustProxyHops);
+}
+
 // Security & parsing
 app.use(helmet());
 app.use(cors({ origin: config.cors.origin }));

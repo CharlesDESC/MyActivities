@@ -35,7 +35,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Tests
-        run: npm test -- --ci --coverage --coverageReporters=text-summary
+        run: npx jest --ci --coverage --coverageReporters=text-summary
 
   deploy:
     name: Deploy → Render

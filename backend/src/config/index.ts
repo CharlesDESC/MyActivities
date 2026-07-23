@@ -9,9 +9,22 @@ function required(key: string): string {
   return value;
 }
 
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+
+function nonNegativeInteger(key: string, fallback: number): number {
+  const value = Number.parseInt(process.env[key] ?? String(fallback), 10);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${key} must be a non-negative integer`);
+  }
+  return value;
+}
+
 export const config = {
   port: parseInt(process.env.PORT ?? '3000', 10),
-  nodeEnv: process.env.NODE_ENV ?? 'development',
+  nodeEnv,
+  // Render place l'API derrière un reverse proxy. En production, une étape est
+  // donc approuvée par défaut ; 0 conserve le comportement direct en local.
+  trustProxyHops: nonNegativeInteger('TRUST_PROXY_HOPS', nodeEnv === 'production' ? 1 : 0),
 
   databaseUrl: required('DATABASE_URL'),
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',

@@ -12,11 +12,10 @@ module.exports = {
     '\\.css$': '<rootDir>/jest/style-mock.js',
     '^@/assets/(.*)$': '<rootDir>/assets/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
-    // npm imbrique expo-modules-core sous expo/ : jest-expo ne le résout pas
-    // depuis son propre dossier. On le pointe explicitement (test uniquement,
-    // l'arbre de dépendances de l'app n'est pas modifié).
-    '^expo-modules-core$': '<rootDir>/node_modules/expo/node_modules/expo-modules-core',
-    '^expo-modules-core/(.*)$': '<rootDir>/node_modules/expo/node_modules/expo-modules-core/$1',
+    // Le verrou npm actuel remonte expo-modules-core à la racine. Ce mapping
+    // explicite garde la résolution Jest déterministe après `npm ci`.
+    '^expo-modules-core$': '<rootDir>/node_modules/expo-modules-core',
+    '^expo-modules-core/(.*)$': '<rootDir>/node_modules/expo-modules-core/$1',
   },
   // Les paquets Expo / React Native sont publiés en ESM non transpilé : Babel doit les traiter.
   transformIgnorePatterns: [

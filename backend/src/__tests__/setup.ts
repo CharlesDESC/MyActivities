@@ -2,6 +2,7 @@ process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 process.env.JWT_ACCESS_SECRET = 'test_access_secret_at_least_32_chars!';
 process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_at_least_32ch!';
 process.env.NODE_ENV = 'test';
+process.env.TRUST_PROXY_HOPS = '1';
 process.env.AUTH_RATE_LIMIT_MAX = '1000';
 process.env.AUTH_RATE_LIMIT_WINDOW_MS = '900000';
 process.env.CORS_ORIGIN = 'http://localhost:8081';
