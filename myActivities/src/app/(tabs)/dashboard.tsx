@@ -12,6 +12,7 @@ import { WebContainer } from '@/components/web/web-container';
 import { OrganizerOnly } from '@/components/organizer/organizer-only';
 import { useOrganizerStats } from '@/hooks/use-organizer-stats';
 import { useEstablishment } from '@/hooks/use-establishment';
+import { useTheme } from '@/hooks/use-theme';
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -23,6 +24,7 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 }
 
 export default function DashboardScreen() {
+  const theme = useTheme();
   const router = useRouter();
   const { stats, totals, isLoading, error, refresh } = useOrganizerStats();
   const { establishment, isLoading: establishmentLoading, error: establishmentError } = useEstablishment();
@@ -80,7 +82,7 @@ export default function DashboardScreen() {
                         <ThemedText type="small" themeColor="textSecondary">{item.planningAdds}</ThemedText>
                       </View>
                       <View style={styles.stat}>
-                        <Icon name="star" size={14} color="#F59E0B" />
+                        <Icon name="star" size={14} color={theme.accent} />
                         <ThemedText type="small" themeColor="textSecondary">
                           {item.avgRating !== null ? item.avgRating.toFixed(1) : '—'} ({item.reviewCount})
                         </ThemedText>

@@ -31,7 +31,7 @@ export function Input({ label, error, style, secureTextEntry, ...props }: InputP
             {
               backgroundColor: theme.backgroundElement,
               color: theme.text,
-              borderColor: error ? '#EF4444' : 'transparent',
+              borderColor: error ? theme.error : 'transparent',
             },
             isPassword && styles.inputWithAction,
             style,
@@ -54,7 +54,7 @@ export function Input({ label, error, style, secureTextEntry, ...props }: InputP
       {error && (
         <ThemedText
           type="small"
-          style={styles.error}
+          style={[styles.error, { color: theme.error }]}
           accessibilityLiveRegion="polite"
           accessibilityRole="alert">
           {error}

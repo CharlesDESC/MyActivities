@@ -76,9 +76,9 @@ export type ActivityDetail = {
 };
 
 export const ACTIVITY_STATUS_CONFIG: Record<ActivityStatus, { label: string; color: string }> = {
-  pending:   { label: 'En attente',  color: '#EAB308' },
-  published: { label: 'Publiée',     color: '#22C55E' },
-  rejected:  { label: 'Rejetée',     color: '#EF4444' },
+  pending:   { label: 'En attente',  color: '#8A4C00' },
+  published: { label: 'Publiée',     color: '#15803D' },
+  rejected:  { label: 'Rejetée',     color: '#D63A3A' },
   archived:  { label: 'Archivée',    color: '#6B7280' },
 };
 
@@ -121,6 +121,6 @@ export const CATEGORY_CONFIG: Record<
   nature:      { label: 'Nature',       icon: 'park',             color: '#22C55E' },
   bien_etre:   { label: 'Bien-être',    icon: 'self-improvement', color: '#EC4899' },
   art:         { label: 'Art',          icon: 'palette',          color: '#EAB308' },
-  musique:     { label: 'Musique',      icon: 'music-note',       color: '#EF4444' },
+  musique:     { label: 'Musique',      icon: 'music-note',       color: '#D63A3A' },
   autre:       { label: 'Autre',        icon: 'category',         color: '#6B7280' },
 };

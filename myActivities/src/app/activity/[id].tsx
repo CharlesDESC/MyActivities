@@ -183,7 +183,7 @@ export default function ActivityDetailScreen() {
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.categoryRow}>
-                <ThemedText type="small" style={{ color: cfg.color, fontWeight: '600' }}>
+                <ThemedText type="small" themeColor="textSecondary" style={{ fontWeight: '600' }}>
                   {cfg.label}
                 </ThemedText>
                 {reviews && reviews.avgRating !== null && (

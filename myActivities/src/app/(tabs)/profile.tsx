@@ -122,7 +122,7 @@ export default function ProfileScreen() {
               <ThemedView type="backgroundElement" style={styles.row}>
                 <ThemedText
                   type="small"
-                  style={{ color: '#EF4444', fontWeight: '600', flex: 1 }}>
+                  style={{ color: '#D63A3A', fontWeight: '600', flex: 1 }}>
                   Se déconnecter
                 </ThemedText>
               </ThemedView>

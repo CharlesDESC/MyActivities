@@ -38,7 +38,11 @@ export function AnimatedIcon() {
   return (
     <View style={styles.iconContainer}>
       <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
-        <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
+        <Image
+          accessible={false}
+          style={styles.glow}
+          source={require('@/assets/images/logo-glow.png')}
+        />
       </Animated.View>
 
       <Animated.View style={styles.background} entering={keyframe.duration(DURATION)}>
@@ -46,9 +50,12 @@ export function AnimatedIcon() {
       </Animated.View>
 
       <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
+        <Image
+          accessible={false}
+          style={styles.image}
+          source={require('@/assets/images/expo-logo.png')}
+        />
       </Animated.View>
     </View>
   );
 }
-

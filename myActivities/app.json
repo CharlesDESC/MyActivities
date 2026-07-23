@@ -3,7 +3,7 @@
     "name": "myActivities",
     "slug": "myActivities",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "myactivities",
     "userInterfaceStyle": "automatic",
@@ -33,7 +33,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0077CC",
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76

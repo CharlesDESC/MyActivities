@@ -46,7 +46,7 @@ function EstablishmentForm({ initial }: { initial: Establishment | null }) {
       </View>
 
       {form.errors.global && (
-        <ThemedView type="backgroundElement" style={styles.globalError}>
+        <ThemedView type="background" style={styles.globalError} accessibilityRole="alert">
           <ThemedText type="small" style={styles.errorText}>{form.errors.global}</ThemedText>
         </ThemedView>
       )}

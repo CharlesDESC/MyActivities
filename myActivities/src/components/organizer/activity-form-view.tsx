@@ -119,7 +119,7 @@ export function ActivityFormView({
             ) : (
               <ScrollView ref={scrollRef} contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
                 {errors.global && (
-                  <ThemedView type="backgroundElement" style={styles.globalError} accessibilityRole="alert">
+                  <ThemedView type="background" style={styles.globalError} accessibilityRole="alert">
                     <ThemedText type="small" style={styles.errorText}>{errors.global}</ThemedText>
                   </ThemedView>
                 )}

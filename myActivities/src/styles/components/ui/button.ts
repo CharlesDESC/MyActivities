@@ -11,7 +11,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
   },
   primary: {
-    backgroundColor: '#208AEF',
+    backgroundColor: '#0077CC',
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -23,10 +23,8 @@ export const styles = StyleSheet.create({
     color: '#ffffff',
   },
   labelGhost: {
-    color: '#208AEF',
   },
   labelDanger: {
-    color: '#EF4444',
   },
   pressed: {
     opacity: 0.75,

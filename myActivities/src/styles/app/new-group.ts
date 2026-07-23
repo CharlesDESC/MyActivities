@@ -37,7 +37,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxOn: { backgroundColor: '#208AEF', borderColor: '#208AEF' },
+  checkboxOn: { backgroundColor: '#0077CC', borderColor: '#0077CC' },
   checkMark: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
   empty: { textAlign: 'center', paddingTop: Spacing.six },
 
@@ -47,5 +47,5 @@ export const styles = StyleSheet.create({
     paddingTop: Spacing.two,
     gap: Spacing.two,
   },
-  error: { color: '#EF4444', textAlign: 'center' },
+  error: { color: '#D63A3A', textAlign: 'center' },
 });

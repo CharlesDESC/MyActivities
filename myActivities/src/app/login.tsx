@@ -32,7 +32,10 @@ export default function LoginScreen() {
 
             <ThemedView style={styles.form}>
               {errors.global && (
-                <ThemedView type="backgroundElement" style={styles.globalError}>
+                <ThemedView
+                  type="background"
+                  style={styles.globalError}
+                  accessibilityRole="alert">
                   <ThemedText type="small" style={styles.errorText}>
                     {errors.global}
                   </ThemedText>
@@ -85,4 +88,3 @@ export default function LoginScreen() {
     </ThemedView>
   );
 }
-

@@ -8,6 +8,7 @@ import {
 import { styles } from '@/styles/components/ui/button';
 
 import { ThemedText } from '@/components/ui/themed-text';
+import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableProps, 'style'> & {
   label: string;
@@ -28,12 +29,6 @@ const LABEL_STYLE = {
   danger: styles.labelDanger,
 } as const;
 
-const SPINNER_COLOR = {
-  primary: '#ffffff',
-  ghost: '#208AEF',
-  danger: '#EF4444',
-} as const;
-
 export function Button({
   label,
   loading,
@@ -42,7 +37,10 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
+  const theme = useTheme();
   const isDisabled = disabled || loading;
+  const foregroundColor =
+    variant === 'primary' ? '#ffffff' : variant === 'ghost' ? theme.primary : theme.error;
 
   return (
     <Pressable
@@ -59,13 +57,14 @@ export function Button({
       disabled={isDisabled}
       {...props}>
       {loading ? (
-        <ActivityIndicator color={SPINNER_COLOR[variant]} size="small" />
+        <ActivityIndicator color={foregroundColor} size="small" />
       ) : (
-        <ThemedText type="smallBold" style={LABEL_STYLE[variant]}>
+        <ThemedText
+          type="smallBold"
+          style={[LABEL_STYLE[variant], { color: foregroundColor }]}>
           {label}
         </ThemedText>
       )}
     </Pressable>
   );
 }
-

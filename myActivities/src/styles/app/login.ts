@@ -23,10 +23,10 @@ export const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Spacing.two,
     borderLeftWidth: 3,
-    borderLeftColor: '#EF4444',
+    borderLeftColor: '#D63A3A',
   },
   errorText: {
-    color: '#EF4444',
+    color: '#D63A3A',
   },
   forgotLink: {
     alignSelf: 'flex-end',
@@ -34,7 +34,10 @@ export const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
+    columnGap: Spacing.one,
+    rowGap: Spacing.one,
   },
 });

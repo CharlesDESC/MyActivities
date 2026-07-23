@@ -26,9 +26,9 @@ export const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Spacing.two,
     borderLeftWidth: 3,
-    borderLeftColor: '#EF4444',
+    borderLeftColor: '#D63A3A',
   },
-  errorText: { color: '#EF4444' },
+  errorText: { color: '#D63A3A' },
 
   establishmentRequired: {
     alignItems: 'center',
@@ -86,7 +86,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxOn: { backgroundColor: '#208AEF', borderColor: '#208AEF' },
+  checkboxOn: { backgroundColor: '#0077CC', borderColor: '#0077CC' },
   checkMark: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
 
   submit: { marginTop: Spacing.two },

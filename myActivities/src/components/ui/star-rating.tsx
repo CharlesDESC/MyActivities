@@ -2,6 +2,7 @@ import { Pressable, View } from 'react-native';
 
 import { styles } from '@/styles/components/ui/star-rating';
 import { Icon } from '@/components/ui/icon';
+import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
   value: number;
@@ -10,9 +11,8 @@ type Props = {
   onRate?: (rating: number) => void;
 };
 
-const AMBER = '#F59E0B';
-
 export function StarRating({ value, max = 5, size = 'normal', onRate }: Props) {
+  const theme = useTheme();
   const iconSize = size === 'small' ? 16 : 22;
 
   return (
@@ -26,7 +26,7 @@ export function StarRating({ value, max = 5, size = 'normal', onRate }: Props) {
       {Array.from({ length: max }, (_, i) => {
         const filled = i < Math.round(value);
         const testID = filled ? 'star-filled' : 'star-empty';
-        const star = <Icon name={filled ? 'star' : 'star-border'} size={iconSize} color={AMBER} />;
+        const star = <Icon name={filled ? 'star' : 'star-border'} size={iconSize} color={theme.accent} />;
         return onRate ? (
           <Pressable
             key={i}

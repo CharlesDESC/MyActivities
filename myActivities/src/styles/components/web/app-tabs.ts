@@ -29,7 +29,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
     paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: '#208AEF',
+    backgroundColor: '#0077CC',
   },
   brandPillText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
 
@@ -54,7 +54,7 @@ export const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: '#D63A3A',
   },
   messageBadgeText: {
     color: '#ffffff',

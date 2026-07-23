@@ -43,6 +43,8 @@ function MapboxMapView({ center, zoom = 12, markers, onMarkerPress, style }: Map
         >
           <Pressable
             onPress={() => onMarkerPress?.(marker.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Activité ${marker.label}`}
             style={[styles.marker, { backgroundColor: marker.color }]}
           >
             <Text style={styles.markerLabel}>{marker.label}</Text>
@@ -60,7 +62,7 @@ export function buildStaticMapUrl(
   markers: MapViewProps['markers'],
   accessToken: string,
 ): string {
-  const userPin = `pin-s+208aef(${center.longitude},${center.latitude})`;
+  const userPin = `pin-s+0077cc(${center.longitude},${center.latitude})`;
   const activityPins = markers.slice(0, 25).map((marker) => {
     const color = marker.color.replace('#', '').toLowerCase();
     return `pin-s+${color}(${marker.position.longitude},${marker.position.latitude})`;
@@ -111,7 +113,7 @@ export function buildInteractiveMapHtml(
         attributionControl: true
       });
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-      new mapboxgl.Marker({ color: '#208AEF', scale: 0.85 })
+      new mapboxgl.Marker({ color: '#0077CC', scale: 0.85 })
         .setLngLat([config.center.longitude, config.center.latitude])
         .addTo(map);
       config.markers.forEach((item) => {

@@ -20,7 +20,7 @@ export default function ResetPasswordScreen() {
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.centered}>
           <ThemedView style={styles.stateBox}>
-            <Icon name="error-outline" size={48} color="#EF4444" />
+            <Icon name="error-outline" size={48} color="#D63A3A" />
             <ThemedText type="subtitle">Lien invalide</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.stateText}>
               Ce lien de réinitialisation est invalide ou a expiré. Fais une nouvelle demande.
@@ -75,7 +75,10 @@ export default function ResetPasswordScreen() {
 
             <ThemedView style={styles.form}>
               {errors.global && (
-                <ThemedView type="backgroundElement" style={styles.globalError}>
+                <ThemedView
+                  type="background"
+                  style={styles.globalError}
+                  accessibilityRole="alert">
                   <ThemedText type="small" style={styles.errorText}>
                     {errors.global}
                   </ThemedText>
@@ -127,4 +130,3 @@ export default function ResetPasswordScreen() {
     </ThemedView>
   );
 }
-

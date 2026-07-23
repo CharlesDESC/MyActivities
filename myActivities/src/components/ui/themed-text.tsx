@@ -10,11 +10,20 @@ export type ThemedTextProps = TextProps & {
   themeColor?: ThemeColor;
 };
 
-export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
+export function ThemedText({
+  style,
+  type = 'default',
+  themeColor,
+  accessibilityRole,
+  ...rest
+}: ThemedTextProps) {
   const theme = useTheme();
+  const resolvedAccessibilityRole =
+    accessibilityRole ?? (type === 'title' || type === 'subtitle' ? 'header' : undefined);
 
   return (
     <Text
+      accessibilityRole={resolvedAccessibilityRole}
       style={[
         { color: theme[themeColor ?? 'text'] },
         type === 'default' && styles.default,
@@ -23,7 +32,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
         type === 'smallBold' && styles.smallBold,
         type === 'subtitle' && styles.subtitle,
         type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
+        type === 'linkPrimary' && [styles.linkPrimary, { color: theme.primary }],
         type === 'code' && styles.code,
         style,
       ]}
@@ -31,4 +40,3 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
     />
   );
 }
-

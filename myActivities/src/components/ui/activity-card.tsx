@@ -54,12 +54,12 @@ export function ActivityCard({ activity, onPress }: Props) {
           {activity.name}
         </ThemedText>
 
-        <ThemedText type="small" style={[styles.categoryLabel, { color: cfg.color }]}>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.categoryLabel}>
           {cfg.label}
         </ThemedText>
 
         <View style={styles.metaRow}>
-          <Icon name="star" size={13} color="#F59E0B" />
+          <Icon name="star" size={13} color={theme.accent} />
           <ThemedText type="small">{' '}{activity.avgRating.toFixed(1)}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {' '}({activity.reviewCount})
@@ -76,4 +76,3 @@ export function ActivityCard({ activity, onPress }: Props) {
     </Pressable>
   );
 }
-

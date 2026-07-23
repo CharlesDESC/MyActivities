@@ -7,3 +7,22 @@
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
 }
+
+/* Focus volontairement très visible pour la navigation sans souris. */
+*:focus-visible {
+  outline: 3px solid #ae6300;
+  outline-offset: 3px;
+}
+
+/* Les animations décoratives ne doivent pas être imposées aux utilisateurs
+   qui ont activé la réduction des mouvements dans leur navigateur. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

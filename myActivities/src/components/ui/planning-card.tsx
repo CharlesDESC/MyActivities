@@ -31,8 +31,8 @@ export function PlanningCard({ entry, onRemove }: Props) {
     <ThemedView type="backgroundElement" style={styles.card}>
       {/* Date strip */}
       <View style={[styles.dateStrip, { backgroundColor: cfg.color + '22' }]}>
-        <ThemedText style={[styles.dateDay, { color: cfg.color }]}>{day}</ThemedText>
-        <ThemedText style={[styles.dateMonth, { color: cfg.color }]}>{month}</ThemedText>
+        <ThemedText style={[styles.dateDay, { color: theme.text }]}>{day}</ThemedText>
+        <ThemedText style={[styles.dateMonth, { color: theme.text }]}>{month}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary" style={styles.dateTime}>{time}</ThemedText>
       </View>
 
@@ -41,7 +41,7 @@ export function PlanningCard({ entry, onRemove }: Props) {
         <ThemedText type="smallBold" numberOfLines={2} style={styles.name}>
           {entry.activity.name}
         </ThemedText>
-        <ThemedText type="small" style={[styles.categoryLabel, { color: cfg.color }]}>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.categoryLabel}>
           {cfg.label}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.address}>

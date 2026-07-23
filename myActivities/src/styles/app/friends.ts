@@ -34,7 +34,7 @@ export const styles = StyleSheet.create({
 
   // ── Recherche ────────────────────────────
   searchBox: { paddingHorizontal: Spacing.three, paddingBottom: Spacing.two },
-  error: { color: '#EF4444', paddingHorizontal: Spacing.three, paddingBottom: Spacing.two },
+  error: { color: '#D63A3A', paddingHorizontal: Spacing.three, paddingBottom: Spacing.two },
 
   // ── Listes ───────────────────────────────
   listContent: { paddingBottom: BottomTabInset + Spacing.four, paddingHorizontal: Spacing.three },
