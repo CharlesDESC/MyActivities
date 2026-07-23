@@ -34,8 +34,9 @@ export function useOrganizerStats() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await api.get<{ data: RawStat[] }>('/organizers/me/stats');
-      setStats(result.data.map(mapStat));
+      // L'API renvoie directement le tableau de stats (pas d'enveloppe `{ data }`).
+      const result = await api.get<RawStat[]>('/organizers/me/stats');
+      setStats(result.map(mapStat));
     } catch (err) {
       setError(getApiErrorMessage(err, 'Erreur de chargement'));
     } finally {

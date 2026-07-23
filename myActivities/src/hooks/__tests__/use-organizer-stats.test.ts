@@ -10,7 +10,7 @@ jest.mock('@/lib/api', () => {
 
 const mockGet = api.get as jest.Mock;
 
-beforeEach(() => mockGet.mockReset().mockResolvedValue({ data: [] }));
+beforeEach(() => mockGet.mockReset().mockResolvedValue([]));
 
 async function mount() {
   const { result } = await renderHook(() => useOrganizerStats());
@@ -20,12 +20,10 @@ async function mount() {
 
 describe('useOrganizerStats', () => {
   it('loads, normalizes and totals the organizer statistics', async () => {
-    mockGet.mockResolvedValue({
-      data: [
-        { activityId: 'a1', activityName: 'Poterie', views: 12, planningAdds: '3', avgRating: '4.5', reviewCount: 2 },
-        { activityId: 'a2', activityName: 'Peinture', views: 8, planningAdds: 2, avgRating: null, reviewCount: 1 },
-      ],
-    });
+    mockGet.mockResolvedValue([
+      { activityId: 'a1', activityName: 'Poterie', views: 12, planningAdds: '3', avgRating: '4.5', reviewCount: 2 },
+      { activityId: 'a2', activityName: 'Peinture', views: 8, planningAdds: 2, avgRating: null, reviewCount: 1 },
+    ]);
 
     const result = await mount();
 
@@ -36,9 +34,9 @@ describe('useOrganizerStats', () => {
   });
 
   it('falls back to zero for invalid numeric values', async () => {
-    mockGet.mockResolvedValue({
-      data: [{ activityId: 'a1', activityName: 'Poterie', views: Number.NaN, planningAdds: 'x', avgRating: '0', reviewCount: Number.NaN }],
-    });
+    mockGet.mockResolvedValue([
+      { activityId: 'a1', activityName: 'Poterie', views: Number.NaN, planningAdds: 'x', avgRating: '0', reviewCount: Number.NaN },
+    ]);
 
     const result = await mount();
 
@@ -58,7 +56,7 @@ describe('useOrganizerStats', () => {
   });
 
   it('refreshes and clears a previous error', async () => {
-    mockGet.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: [] });
+    mockGet.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]);
     const result = await mount();
 
     await act(async () => { await result.current.refresh(); });
