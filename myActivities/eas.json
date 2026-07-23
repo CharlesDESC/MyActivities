@@ -14,7 +14,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api-staging.myactivities.app/v1"
+        "EXPO_PUBLIC_API_URL": "https://myactivities-back.onrender.com/v1"
       }
     },
     "production": {
