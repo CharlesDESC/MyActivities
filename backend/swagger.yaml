@@ -41,12 +41,10 @@ info:
     name: Projet de certification RNCP 39583
 
 servers:
-  - url: https://api.myactivities.app/v1
-    description: Production
-  - url: https://staging-api.myactivities.app/v1
-    description: Staging
+  - url: https://myactivities-back.onrender.com/v1
+    description: Production — Render
   - url: http://localhost:3000/v1
-    description: Développement local
+    description: Développement local — Docker
 
 tags:
   - name: Auth
