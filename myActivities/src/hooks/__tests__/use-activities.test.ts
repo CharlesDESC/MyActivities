@@ -34,11 +34,15 @@ beforeEach(() => {
 });
 
 describe('useNearbyActivities — requête', () => {
-  it('waits for a location before querying the backend', async () => {
+  // Sans position (GPS refusé ou indisponible), le hook ne doit pas rester en
+  // chargement : useUserLocation laisse `position` à null indéfiniment.
+  it('stops loading without querying the backend when there is no location', async () => {
     const { result } = await renderHook(() => useNearbyActivities(null));
 
-    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockGet).not.toHaveBeenCalled();
+    expect(result.current.activities).toEqual([]);
+    expect(result.current.error).toBeNull();
   });
 
   it('queries the backend with the centre and radius', async () => {
