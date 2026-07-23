@@ -15,7 +15,7 @@ describe('buildStaticMapUrl', () => {
     );
 
     expect(url).toContain('api.mapbox.com/styles/v1/mapbox/streets-v12/static/');
-    expect(url).toContain('pin-s+208aef(7.127292,43.582933)');
+    expect(url).toContain('pin-s+0077cc(7.127292,43.582933)');
     expect(url).toContain('pin-s+3b82f6(7.13,43.58)');
     expect(url).toContain('/7.127292,43.582933,12,0/');
     expect(url).toContain('access_token=pk.test-token');
