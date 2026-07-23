@@ -2,6 +2,11 @@
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  // Le premier rendu d'un écran complet transforme tout l'arbre React Native /
+  // Expo à la volée. Sur un runner CI (cache Babel froid + --coverage), ce seul
+  // rendu dépasse les 5 s par défaut de Jest et fait échouer le premier test du
+  // fichier alors que les suivants passent.
+  testTimeout: 20_000,
   moduleNameMapper: {
     // Doit précéder la règle '^@/(.*)$' : les imports CSS sont stubbés (Jest ne parse pas le CSS).
     '\\.css$': '<rootDir>/jest/style-mock.js',

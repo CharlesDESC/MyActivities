@@ -8,7 +8,6 @@ import {
 import { styles } from '@/styles/components/ui/button';
 
 import { ThemedText } from '@/components/ui/themed-text';
-import { Spacing } from '@/constants/theme';
 
 type ButtonProps = Omit<PressableProps, 'style'> & {
   label: string;

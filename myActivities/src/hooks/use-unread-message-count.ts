@@ -26,7 +26,6 @@ export function useUnreadMessageCount() {
 
   useEffect(() => {
     // Le setState intervient après la réponse réseau, pas pendant l'effet.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 

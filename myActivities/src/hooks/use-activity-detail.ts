@@ -19,10 +19,10 @@ type RawDetail = {
 
 type RawReviewList = {
   avgRating: string | null; reviewCount: number;
-  data: Array<{
+  data: {
     id: string; rating: number; createdAt: string; updatedAt: string | null;
     author: { id: string; pseudo: string; avatarUrl: string | null };
-  }>;
+  }[];
   meta: { total: number; page: number; limit: number; totalPages: number };
 };
 

@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
-import { Spacing } from '@/constants/theme';
 import { useRegisterForm } from '@/hooks/use-register-form';
 
 const IS_WEB = Platform.OS === 'web';

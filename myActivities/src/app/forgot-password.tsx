@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
 import { ThemedText } from '@/components/ui/themed-text';
 import { ThemedView } from '@/components/ui/themed-view';
-import { Spacing } from '@/constants/theme';
 import { useForgotPasswordForm } from '@/hooks/use-forgot-password-form';
 
 export default function ForgotPasswordScreen() {

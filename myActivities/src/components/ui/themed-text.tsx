@@ -2,7 +2,7 @@ import { Text, type TextProps } from 'react-native';
 
 import { styles } from '@/styles/components/ui/themed-text';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {

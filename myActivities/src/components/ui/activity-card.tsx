@@ -4,7 +4,6 @@ import { styles } from '@/styles/components/ui/activity-card';
 
 import { ThemedText } from '@/components/ui/themed-text';
 import { Icon } from '@/components/ui/icon';
-import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { CATEGORY_CONFIG, type ActivitySummary } from '@/types/activity';
 
