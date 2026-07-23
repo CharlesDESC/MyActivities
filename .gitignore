@@ -29,6 +29,13 @@ coverage/
 .expo/
 web-build/
 
+# Documentation de certification et notes de travail : hors dépôt public.
+# Seul le README à la racine est versionné.
 *.md
+!/README.md
+docs/
+scripts/
+
+# Outils de développement locaux
 .claude
 .agents
