@@ -104,6 +104,33 @@ describe('POST /v1/messages/conversations/:conversationId (send to existing)', (
   });
 });
 
+describe('DELETE /v1/messages/conversations/:conversationId', () => {
+  it('returns 204 and notifies every participant of the deletion', async () => {
+    mock.deleteConversation.mockResolvedValue({ participantIds: ['user-1', RECIPIENT] });
+    const res = await request(app)
+      .delete(`/v1/messages/conversations/${CONV}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(204);
+    expect(mock.deleteConversation).toHaveBeenCalledWith('user-1', CONV);
+    expect(publishRealtime).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'conversation:updated', recipients: ['user-1', RECIPIENT] }),
+    );
+  });
+
+  it('returns 401 without auth', async () => {
+    const res = await request(app).delete(`/v1/messages/conversations/${CONV}`);
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 if the user is not a participant', async () => {
+    mock.deleteConversation.mockRejectedValue(new AppError(403, 'Accès refusé.', 'FORBIDDEN'));
+    const res = await request(app)
+      .delete(`/v1/messages/conversations/${CONV}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+});
+
 describe('POST /v1/messages (direct)', () => {
   it('returns 401 without auth', async () => {
     const res = await request(app).post('/v1/messages').send({ recipientId: RECIPIENT, content: 'hi' });

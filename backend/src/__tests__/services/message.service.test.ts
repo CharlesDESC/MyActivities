@@ -200,6 +200,36 @@ describe('message.service — getMessages', () => {
   });
 });
 
+describe('message.service — deleteConversation', () => {
+  it('throws 404 if the conversation does not exist', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // getParticipantIds → empty
+    await expect(messageService.deleteConversation('user-1', 'conv-x')).rejects.toMatchObject({
+      statusCode: 404,
+    });
+  });
+
+  it('throws 403 if user is not a participant', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ user_id: 'a' }, { user_id: 'b' }] });
+    await expect(messageService.deleteConversation('user-1', 'conv-1')).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'FORBIDDEN',
+    });
+  });
+
+  it('deletes the conversation for everyone and returns all participants', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ user_id: 'user-1' }, { user_id: 'user-2' }] }) // assertParticipant
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] });                               // DELETE conversation
+
+    const result = await messageService.deleteConversation('user-2', 'conv-1');
+    const deleteCall = mockQuery.mock.calls[1];
+    expect(deleteCall[0]).toContain('DELETE FROM conversations');
+    expect(deleteCall[1]).toEqual(['conv-1']);
+    // Un organisateur (participant non-initiateur) peut supprimer : aucun rôle requis.
+    expect(result.participantIds).toEqual(['user-1', 'user-2']);
+  });
+});
+
 describe('message.service — markConversationRead', () => {
   it('throws 403 if user is not a participant', async () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ user_id: 'a' }, { user_id: 'b' }] });

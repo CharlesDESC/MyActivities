@@ -2443,6 +2443,31 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Messaging]
+      summary: Supprimer une conversation (pour tous les participants)
+      description: |
+        Supprime définitivement la conversation et l'ensemble de ses messages
+        pour **tous** ses participants (cascade). N'importe quel participant peut
+        la déclencher, y compris un organisateur contacté par un membre. Tous les
+        participants sont notifiés en temps réel (`conversation:updated`).
+      operationId: deleteConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Conversation supprimée pour l'utilisateur
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /messages/conversations/{conversationId}/read:
     post:

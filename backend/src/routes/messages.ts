@@ -46,6 +46,20 @@ router.post('/conversations/:conversationId/read', authenticate, async (req: Req
   } catch (err) { next(err); }
 });
 
+// Supprimer une conversation pour tous ses participants (définitif) + notification
+router.delete('/conversations/:conversationId', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { conversationId } = req.params;
+    const { participantIds } = await messageService.deleteConversation(req.user!.sub, conversationId);
+    await publishRealtime({
+      type: SOCKET_EVENTS.CONVERSATION_UPDATED,
+      recipients: participantIds,
+      payload: { conversationId },
+    });
+    res.status(204).send();
+  } catch (err) { next(err); }
+});
+
 // Envoi vers une conversation existante (direct ou groupe) + fan-out temps réel
 router.post('/conversations/:conversationId', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -307,6 +307,21 @@ export async function markConversationRead(
   };
 }
 
+/**
+ * Supprime une conversation pour *tous* ses participants. N'importe quel membre
+ * de la conversation (y compris un organisateur contacté par un membre) peut la
+ * déclencher : la suppression est définitive et efface les messages via
+ * `ON DELETE CASCADE`. Renvoie les participants à prévenir en temps réel.
+ */
+export async function deleteConversation(
+  userId: string,
+  conversationId: string,
+): Promise<{ participantIds: string[] }> {
+  const participantIds = await assertParticipant(userId, conversationId);
+  await pool.query('DELETE FROM conversations WHERE id = $1', [conversationId]);
+  return { participantIds };
+}
+
 // ─── Groupes ────────────────────────────────────────────────────────────────────
 
 /**

@@ -1,4 +1,4 @@
-import { FlatList, Pressable, View } from 'react-native';
+import { Alert, FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -29,7 +29,26 @@ function conversationName(c: Conversation): string {
 export default function ConversationsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { conversations, isLoading, error, refresh } = useConversations();
+  const { conversations, isLoading, error, refresh, remove } = useConversations();
+
+  function confirmDelete(c: Conversation) {
+    Alert.alert(
+      'Supprimer la conversation',
+      `Supprimer définitivement « ${conversationName(c)} » et tous ses messages ? La conversation sera aussi retirée pour l'autre participant.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => {
+            remove(c.id).catch(() => {
+              Alert.alert('Suppression impossible', 'Réessaie dans un instant.');
+            });
+          },
+        },
+      ],
+    );
+  }
 
   function openConversation(c: Conversation) {
     router.push({
@@ -87,8 +106,10 @@ export default function ConversationsScreen() {
           renderItem={({ item }) => (
             <Pressable
               onPress={() => openConversation(item)}
+              onLongPress={() => confirmDelete(item)}
               accessibilityRole="button"
-              accessibilityLabel={`Conversation ${conversationName(item)}`}>
+              accessibilityLabel={`Conversation ${conversationName(item)}`}
+              accessibilityHint="Appui long pour supprimer">
               <View style={styles.row}>
                 <ThemedView type="backgroundElement" style={styles.avatar}>
                   <Icon name={item.type === 'group' ? 'group' : 'account-circle'} size={28} themeColor="textSecondary" />

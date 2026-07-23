@@ -24,6 +24,20 @@ export function useConversations() {
 
   useEffect(() => { fetchConversations(); }, [fetchConversations]);
 
+  // Supprime (masque) une conversation pour l'utilisateur courant. Retrait
+  // optimiste de la liste ; en cas d'échec on recharge pour rétablir l'état réel.
+  const remove = useCallback(async (conversationId: string) => {
+    const previous = conversations;
+    setConversations((list) => list.filter((c) => c.id !== conversationId));
+    try {
+      await api.delete(`/messages/conversations/${conversationId}`);
+    } catch (err) {
+      setConversations(previous);
+      setError(getApiErrorMessage(err, 'Suppression impossible'));
+      throw err;
+    }
+  }, [conversations]);
+
   // Temps réel : tout changement (message, lecture, groupe) rafraîchit la liste.
   useEffect(() => {
     const client = getRealtimeClient();
@@ -34,5 +48,5 @@ export function useConversations() {
     return () => { offNew(); offRead(); offConvNew(); offConvUpd(); };
   }, [fetchConversations]);
 
-  return { conversations, isLoading, error, refresh: fetchConversations };
+  return { conversations, isLoading, error, refresh: fetchConversations, remove };
 }

@@ -6,7 +6,7 @@ import type { Conversation } from '@/types/message';
 
 jest.mock('@/lib/api', () => {
   const actual = jest.requireActual('@/lib/api');
-  return { ...actual, api: { get: jest.fn() } };
+  return { ...actual, api: { get: jest.fn(), delete: jest.fn() } };
 });
 
 const listeners: Record<string, (payload: unknown) => void> = {};
@@ -20,6 +20,7 @@ jest.mock('@/lib/socket', () => ({
 }));
 
 const mockGet = api.get as jest.Mock;
+const mockDelete = api.delete as jest.Mock;
 
 const conversation: Conversation = {
   id: 'conv-1',
@@ -34,6 +35,7 @@ const conversation: Conversation = {
 
 beforeEach(() => {
   mockGet.mockReset().mockResolvedValue({ data: [conversation] });
+  mockDelete.mockReset().mockResolvedValue(undefined);
 });
 
 async function mountHook() {
@@ -85,5 +87,22 @@ describe('useConversations', () => {
     await mountHook();
     await act(async () => { listeners['conversation:updated']({ conversationId: 'grp-1' }); });
     await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
+  });
+
+  it('removes a conversation optimistically', async () => {
+    const result = await mountHook();
+    await act(async () => { await result.current.remove('conv-1'); });
+    expect(mockDelete).toHaveBeenCalledWith('/messages/conversations/conv-1');
+    expect(result.current.conversations).toHaveLength(0);
+  });
+
+  it('restores the conversation and surfaces an error when deletion fails', async () => {
+    mockDelete.mockRejectedValue(new ApiError('Accès refusé', 403));
+    const result = await mountHook();
+    await act(async () => {
+      await expect(result.current.remove('conv-1')).rejects.toBeInstanceOf(ApiError);
+    });
+    expect(result.current.conversations).toHaveLength(1);
+    expect(result.current.error).toBe('Accès refusé');
   });
 });
