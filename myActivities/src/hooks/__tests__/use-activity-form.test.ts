@@ -7,11 +7,12 @@ import type { ActivityDetail } from '@/types/activity';
 
 jest.mock('@/lib/api', () => {
   const actual = jest.requireActual('@/lib/api');
-  return { ...actual, api: { post: jest.fn(), patch: jest.fn() } };
+  return { ...actual, api: { post: jest.fn(), patch: jest.fn(), delete: jest.fn() } };
 });
 
 const mockPost = api.post as jest.Mock;
 const mockPatch = api.patch as jest.Mock;
+const mockDelete = api.delete as jest.Mock;
 
 const ACTIVITY: ActivityDetail = {
   id: 'act-1',
@@ -54,6 +55,7 @@ const VALID: ActivityFormState = {
 beforeEach(() => {
   mockPost.mockReset().mockResolvedValue(ACTIVITY);
   mockPatch.mockReset().mockResolvedValue(ACTIVITY);
+  mockDelete.mockReset().mockResolvedValue(undefined);
 });
 
 async function fillForm(
@@ -271,5 +273,47 @@ describe('useActivityForm — enregistrement', () => {
 
     expect(caught).toBe(failure);
     expect(result.current.errors.global).toBe('Serveur injoignable. Vérifie ta connexion puis réessaie.');
+  });
+});
+
+describe('useActivityForm — suppression', () => {
+  it('does nothing in create mode (no activityId)', async () => {
+    const { result } = await renderHook(() => useActivityForm());
+
+    let deleted: boolean | undefined;
+    await act(async () => { deleted = await result.current.remove(); });
+
+    expect(deleted).toBe(false);
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it('deletes the activity in edit mode and returns true', async () => {
+    const { result } = await renderHook(() => useActivityForm({ activityId: 'act-1' }));
+
+    let deleted: boolean | undefined;
+    await act(async () => { deleted = await result.current.remove(); });
+
+    expect(deleted).toBe(true);
+    expect(mockDelete).toHaveBeenCalledWith('/activities/act-1');
+    expect(result.current.isDeleting).toBe(false);
+  });
+
+  it('exposes the API error, rethrows it and stops the deleting state', async () => {
+    const failure = new ApiError('Accès refusé.', 403, 'FORBIDDEN');
+    mockDelete.mockRejectedValue(failure);
+    const { result } = await renderHook(() => useActivityForm({ activityId: 'act-1' }));
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.remove();
+      } catch (error) {
+        caught = error;
+      }
+    });
+
+    expect(caught).toBe(failure);
+    expect(result.current.errors.global).toBe('Accès refusé. (code : FORBIDDEN)');
+    expect(result.current.isDeleting).toBe(false);
   });
 });

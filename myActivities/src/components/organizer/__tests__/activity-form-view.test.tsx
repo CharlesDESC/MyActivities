@@ -1,3 +1,4 @@
+import { Alert, Platform } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { ActivityFormView } from '@/components/organizer/activity-form-view';
@@ -5,8 +6,9 @@ import { useActivityForm, type ActivityFormState } from '@/hooks/use-activity-fo
 
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
+const mockCanGoBack = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ back: mockBack, replace: mockReplace }),
+  useRouter: () => ({ back: mockBack, replace: mockReplace, canGoBack: mockCanGoBack }),
 }));
 
 jest.mock('@/components/organizer/organizer-only', () => ({
@@ -42,6 +44,21 @@ jest.mock('@/hooks/use-establishment', () => ({
 const mockUseActivityForm = useActivityForm as jest.Mock;
 const mockSetField = jest.fn();
 const mockSubmit = jest.fn();
+const mockRemove = jest.fn();
+
+// `confirm` n'existe pas dans l'environnement de test Node : on l'installe le
+// temps des tests web puis on le retire (afterEach) pour ne pas fuir sur les
+// tests natifs.
+const originalConfirm = globalThis.confirm;
+function setWebConfirm(accepted: boolean) {
+  Object.defineProperty(globalThis, 'confirm', {
+    value: jest.fn().mockReturnValue(accepted),
+    configurable: true,
+  });
+}
+afterEach(() => {
+  Object.defineProperty(globalThis, 'confirm', { value: originalConfirm, configurable: true });
+});
 
 const VALUES: ActivityFormState = {
   name: 'Atelier poterie',
@@ -62,9 +79,11 @@ function useForm(overrides: Record<string, unknown> = {}) {
     values: VALUES,
     errors: {},
     isSubmitting: false,
+    isDeleting: false,
     isEditing: false,
     setField: mockSetField,
     submit: mockSubmit,
+    remove: mockRemove,
     ...overrides,
   });
 }
@@ -72,6 +91,8 @@ function useForm(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   jest.clearAllMocks();
   mockSubmit.mockResolvedValue({ id: 'act-1' });
+  mockRemove.mockResolvedValue(true);
+  mockCanGoBack.mockReturnValue(true);
   useForm();
 });
 
@@ -112,10 +133,20 @@ describe('ActivityFormView', () => {
     expect(mockSetField).toHaveBeenCalledWith('stroller', false);
   });
 
-  it('navigates back from the header', async () => {
+  it('navigates back from the header when history exists', async () => {
+    mockCanGoBack.mockReturnValue(true);
     await render(<ActivityFormView />);
     await fireEvent.press(screen.getByLabelText('Retour'));
     expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the activity list when there is no history (direct load / refresh)', async () => {
+    mockCanGoBack.mockReturnValue(false);
+    await render(<ActivityFormView />);
+    await fireEvent.press(screen.getByLabelText('Retour'));
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/my-activities');
   });
 
   it('submits then returns to the activity list', async () => {
@@ -148,5 +179,65 @@ describe('ActivityFormView', () => {
     useForm({ isSubmitting: true });
     await render(<ActivityFormView />);
     expect(screen.queryByText('Créer l’activité')).toBeNull();
+  });
+
+  it('does not offer deletion when creating an activity', async () => {
+    await render(<ActivityFormView />);
+    expect(screen.queryByText('Supprimer l’activité')).toBeNull();
+  });
+
+  it('deletes after confirmation then returns to the activity list', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
+      buttons?.find((b) => b.style === 'destructive')?.onPress?.();
+    });
+    useForm({ isEditing: true });
+    await render(<ActivityFormView />);
+
+    await fireEvent.press(screen.getByText('Supprimer l’activité'));
+
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/my-activities'));
+    alertSpy.mockRestore();
+  });
+
+  it('uses the browser confirm on web and deletes when accepted', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const alertSpy = jest.spyOn(Alert, 'alert');
+    setWebConfirm(true);
+    useForm({ isEditing: true });
+    await render(<ActivityFormView />);
+
+    await fireEvent.press(screen.getByText('Supprimer l’activité'));
+
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/my-activities'));
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not delete on web when the confirm is dismissed', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    setWebConfirm(false);
+    useForm({ isEditing: true });
+    await render(<ActivityFormView />);
+
+    await fireEvent.press(screen.getByText('Supprimer l’activité'));
+
+    expect(mockRemove).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('stays on the form when deletion fails', async () => {
+    mockRemove.mockRejectedValue(new Error('offline'));
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
+      buttons?.find((b) => b.style === 'destructive')?.onPress?.();
+    });
+    useForm({ isEditing: true });
+    await render(<ActivityFormView />);
+
+    await fireEvent.press(screen.getByText('Supprimer l’activité'));
+
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledTimes(1));
+    expect(mockReplace).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
   });
 });

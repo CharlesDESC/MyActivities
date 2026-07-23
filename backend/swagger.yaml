@@ -34,11 +34,6 @@ info:
     | 429 | Trop de requêtes (rate limiting) |
 
   version: 1.0.0
-  contact:
-    name: Charles Deschamps
-    email: Charles.deschamps06@hotmail.com
-  license:
-    name: Projet de certification RNCP 39583
 
 servers:
   - url: https://myactivities-back.onrender.com/v1

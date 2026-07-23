@@ -90,4 +90,5 @@ export const styles = StyleSheet.create({
   checkMark: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
 
   submit: { marginTop: Spacing.two },
+  delete: { marginTop: Spacing.one },
 });

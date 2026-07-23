@@ -16,11 +16,17 @@ export const styles = StyleSheet.create({
   ghost: {
     backgroundColor: 'transparent',
   },
+  danger: {
+    backgroundColor: 'transparent',
+  },
   labelPrimary: {
     color: '#ffffff',
   },
   labelGhost: {
     color: '#208AEF',
+  },
+  labelDanger: {
+    color: '#EF4444',
   },
   pressed: {
     opacity: 0.75,

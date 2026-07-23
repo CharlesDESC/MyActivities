@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -34,7 +34,8 @@ export function ActivityFormView({
   const scrollRef = useRef<ScrollView>(null);
   const theme = useTheme();
   const { establishment, isLoading: establishmentLoading, error: establishmentError } = useEstablishment();
-  const { values, errors, isSubmitting, isEditing, setField, submit } = useActivityForm({ activityId, initial });
+  const { values, errors, isSubmitting, isDeleting, isEditing, setField, submit, remove } =
+    useActivityForm({ activityId, initial });
 
   async function handleSubmit() {
     try {
@@ -53,13 +54,46 @@ export function ActivityFormView({
     }
   }
 
+  // Un accès direct à la page d'édition (refresh web, lien partagé) n'a pas
+  // d'historique : `router.back()` échouerait. On retombe alors sur la liste.
+  function handleBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/my-activities');
+  }
+
+  async function performDelete() {
+    try {
+      await remove();
+      router.replace('/my-activities');
+    } catch {
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: true }));
+    }
+  }
+
+  function handleDelete() {
+    const message =
+      `Supprimer définitivement « ${values.name} » ? Ses créneaux et avis seront aussi retirés. Cette action est irréversible.`;
+
+    // Sur web, `Alert.alert` avec boutons ne déclenche pas les callbacks : on
+    // passe par la confirmation native du navigateur (même pattern que le logout).
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm(message)) void performDelete();
+      return;
+    }
+
+    Alert.alert('Supprimer l’activité', message, [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Supprimer', style: 'destructive', onPress: () => { void performDelete(); } },
+    ]);
+  }
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <OrganizerOnly>
           <WebContainer>
             <View style={styles.header}>
-              <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Retour">
+              <Pressable onPress={handleBack} accessibilityRole="button" accessibilityLabel="Retour">
                 <Icon name="arrow-back" size={24} />
               </Pressable>
               <ThemedText type="title" style={styles.title}>
@@ -203,6 +237,11 @@ export function ActivityFormView({
 
                 <Button label={isEditing ? 'Enregistrer' : 'Créer l’activité'} onPress={handleSubmit}
                   loading={isSubmitting} style={styles.submit} />
+
+                {isEditing && (
+                  <Button label="Supprimer l’activité" variant="danger" onPress={handleDelete}
+                    loading={isDeleting} disabled={isSubmitting} style={styles.delete} />
+                )}
               </ScrollView>
             )}
           </WebContainer>

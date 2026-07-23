@@ -74,6 +74,7 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
   const [values, setValues] = useState<ActivityFormState>(initial ? fromActivity(initial) : EMPTY);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Préremplit quand la donnée initiale arrive (chargement asynchrone).
   useEffect(() => {
@@ -151,5 +152,30 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
     }
   }, [activityId, values, validate]);
 
-  return { values, errors, isSubmitting, isEditing: !!activityId, setField, submit };
+  /**
+   * Supprime l'activité en cours d'édition (`DELETE /activities/:id`). Le backend
+   * vérifie la propriété : un organisateur ne peut supprimer que les siennes.
+   * Renvoie `true` en cas de succès pour que l'écran puisse naviguer.
+   */
+  const remove = useCallback(async (): Promise<boolean> => {
+    if (!activityId) return false;
+    setIsDeleting(true);
+    setErrors((prev) => ({ ...prev, global: undefined }));
+    try {
+      await api.delete(`/activities/${activityId}`);
+      return true;
+    } catch (err) {
+      setErrors((prev) => ({
+        ...prev,
+        global: err instanceof ApiError
+          ? getApiErrorMessage(err, 'Suppression impossible')
+          : 'Serveur injoignable. Vérifie ta connexion puis réessaie.',
+      }));
+      throw err;
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [activityId]);
+
+  return { values, errors, isSubmitting, isDeleting, isEditing: !!activityId, setField, submit, remove };
 }
