@@ -35,7 +35,7 @@ export function useEstablishmentForm(initial: Establishment | null) {
         websiteUrl: initial.websiteUrl ?? '',
       });
       setSelectedAddress({
-        mapboxId: initial.mapboxId,
+        addressId: initial.addressId,
         address: initial.address,
         latitude: initial.latitude,
         longitude: initial.longitude,
@@ -103,7 +103,7 @@ export function useEstablishmentForm(initial: Establishment | null) {
   const submit = useCallback(async (): Promise<Establishment | null> => {
     const next: FormErrors = {};
     if (values.name.trim().length < 2) next.name = 'Au moins 2 caractères';
-    if (!selectedAddress) next.address = 'Sélectionnez une adresse proposée par Mapbox';
+    if (!selectedAddress) next.address = 'Sélectionnez une adresse proposée par cartes.gouv.fr';
     if (values.websiteUrl.trim() && !/^https?:\/\//i.test(values.websiteUrl.trim())) {
       next.websiteUrl = 'Adresse web invalide';
     }
@@ -114,7 +114,8 @@ export function useEstablishmentForm(initial: Establishment | null) {
     try {
       const payload: {
         name: string;
-        mapboxId?: string;
+        addressId?: string;
+        address?: string;
         phone: string | null;
         websiteUrl: string | null;
       } = {
@@ -122,8 +123,9 @@ export function useEstablishmentForm(initial: Establishment | null) {
         phone: values.phone.trim() || null,
         websiteUrl: values.websiteUrl.trim() || null,
       };
-      if (!initial || selectedAddress.mapboxId !== initial.mapboxId) {
-        payload.mapboxId = selectedAddress.mapboxId;
+      if (!initial || selectedAddress.addressId !== initial.addressId) {
+        payload.addressId = selectedAddress.addressId;
+        payload.address = selectedAddress.address;
       }
       return initial
         ? await api.patch<Establishment>(`/establishments/${initial.id}`, payload)

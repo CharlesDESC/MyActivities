@@ -14,6 +14,21 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   map: { flex: 1 },
+  locationRequired: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.four,
+    paddingBottom: BottomTabInset,
+  },
+  locationRequiredCard: {
+    alignItems: 'center',
+    borderRadius: Spacing.three,
+    gap: Spacing.three,
+    padding: Spacing.five,
+  },
+  locationRequiredText: {
+    textAlign: 'center',
+  },
 
   listContent: {
     flexGrow: 1,

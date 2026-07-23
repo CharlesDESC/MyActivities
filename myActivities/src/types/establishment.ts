@@ -4,7 +4,7 @@ export type Establishment = {
   address: string;
   latitude: number;
   longitude: number;
-  mapboxId: string;
+  addressId: string;
   phone: string | null;
   websiteUrl: string | null;
   createdAt: string;
@@ -19,7 +19,7 @@ export type EstablishmentPrefill = {
 };
 
 export type AddressSuggestion = {
-  mapboxId: string;
+  addressId: string;
   address: string;
   latitude: number;
   longitude: number;

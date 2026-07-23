@@ -2,21 +2,21 @@ jest.mock('../../db/pool', () => ({
   pool: { query: jest.fn() },
 }));
 jest.mock('../../lib/siret');
-jest.mock('../../lib/mapbox-geocoding');
+jest.mock('../../lib/ign-geocoding');
 
 import { pool } from '../../db/pool';
 import { lookupSiret } from '../../lib/siret';
-import { resolvePermanentAddress } from '../../lib/mapbox-geocoding';
+import { resolveAddress } from '../../lib/ign-geocoding';
 import * as service from '../../services/establishment.service';
 
 const mockQuery = pool.query as jest.Mock;
 const mockLookup = lookupSiret as jest.Mock;
-const mockResolveAddress = resolvePermanentAddress as jest.Mock;
+const mockResolveAddress = resolveAddress as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockResolveAddress.mockResolvedValue({
-    mapboxId: 'address.123',
+    addressId: 'ban-address-123',
     address: '12 rue de la République, 69001 Lyon',
     latitude: 45.767,
     longitude: 4.835,
@@ -29,7 +29,7 @@ const row = {
   address: '12 rue de la République, 69001 Lyon',
   latitude: 45.767,
   longitude: 4.835,
-  mapboxId: 'poi.123',
+  addressId: 'ban-address-123',
   phone: null,
   websiteUrl: null,
   organizerId: 'org-1',
@@ -88,7 +88,9 @@ describe('establishment.service — createEstablishment', () => {
       .mockResolvedValueOnce({ rows: [{ id: 'est-1' }] })   // INSERT RETURNING id
       .mockResolvedValueOnce({ rows: [row] });              // getEstablishment
     const result = await service.createEstablishment('org-1', {
-      name: 'ClimbUp Lyon', mapboxId: 'address.123',
+      name: 'ClimbUp Lyon',
+      addressId: 'ban-address-123',
+      address: '12 rue de la République, 69001 Lyon',
     });
     expect(result.id).toBe('est-1');
     const insertParams = mockQuery.mock.calls[1][1] as unknown[];
@@ -101,7 +103,9 @@ describe('establishment.service — createEstablishment', () => {
   it('rejects a second establishment for the same account', async () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ id: 'est-1' }] });
     await expect(service.createEstablishment('org-1', {
-      name: 'Autre établissement', mapboxId: 'address.456',
+      name: 'Autre établissement',
+      addressId: 'ban-address-456',
+      address: '14 rue de la République, 69001 Lyon',
     })).rejects.toMatchObject({ statusCode: 409, code: 'ESTABLISHMENT_EXISTS' });
     expect(mockResolveAddress).not.toHaveBeenCalled();
   });

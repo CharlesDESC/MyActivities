@@ -44,6 +44,9 @@ jest.mock('@rnmapbox/maps', () => ({
   UserLocation: 'UserLocation',
 }));
 
+// La WebView Mapbox est native dans Expo Go ; sous Jest, un hôte léger suffit.
+jest.mock('react-native-webview', () => ({ WebView: 'WebView' }));
+
 // console.log bruyant de lib/api : on le neutralise pour garder une sortie de test lisible.
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});

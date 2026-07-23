@@ -263,7 +263,7 @@ async function seed() {
     const demoPlace = ACTIVITIES[0];
     const { rows: estRows } = await client.query<{ id: string }>(
       `INSERT INTO establishments
-         (organizer_id, name, address, location, mapbox_id, website_url)
+         (organizer_id, name, address, location, address_id, website_url)
        VALUES ($1, $2, $3, ST_MakePoint($4, $5)::geography, $6, $7)
        ON CONFLICT (organizer_id) DO UPDATE SET organizer_id = EXCLUDED.organizer_id
        RETURNING id`,

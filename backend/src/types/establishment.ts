@@ -4,7 +4,7 @@ export interface EstablishmentRow {
   organizer_id: string;
   name: string;
   address: string;
-  mapbox_id: string;
+  address_id: string;
   phone: string | null;
   website_url: string | null;
   created_at: Date;
@@ -18,7 +18,7 @@ export interface Establishment {
   address: string;
   latitude: number;
   longitude: number;
-  mapboxId: string;
+  addressId: string;
   phone: string | null;
   websiteUrl: string | null;
   createdAt: Date;
@@ -33,9 +33,9 @@ export interface EstablishmentPrefill {
   longitude: number | null;
 }
 
-/** Adresse temporairement proposée par Mapbox avant confirmation. */
+/** Adresse proposée par le service de géocodage de la Géoplateforme IGN. */
 export interface AddressSuggestion {
-  mapboxId: string;
+  addressId: string;
   address: string;
   latitude: number;
   longitude: number;

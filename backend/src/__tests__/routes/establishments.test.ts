@@ -7,14 +7,14 @@ jest.mock('swagger-ui-express', () => ({
 jest.mock('js-yaml', () => ({ load: () => ({}) }));
 jest.mock('fs', () => ({ ...jest.requireActual('fs'), readFileSync: () => '' }));
 jest.mock('../../services/establishment.service');
-jest.mock('../../lib/mapbox-geocoding');
+jest.mock('../../lib/ign-geocoding');
 
 import request from 'supertest';
 import app from '../../app';
 import * as establishmentService from '../../services/establishment.service';
 import { generateAccessToken } from '../../lib/tokens';
 import { AppError } from '../../middleware/errorHandler';
-import { searchAddresses } from '../../lib/mapbox-geocoding';
+import { searchAddresses } from '../../lib/ign-geocoding';
 
 const mock = establishmentService as jest.Mocked<typeof establishmentService>;
 
@@ -23,7 +23,8 @@ const organizerToken = generateAccessToken('org-1', 'organizer');
 
 const validBody = {
   name: 'ClimbUp Lyon',
-  mapboxId: 'address.123',
+  addressId: 'ban-address-123',
+  address: '12 rue de la République 69001 Lyon',
 };
 
 beforeEach(() => jest.clearAllMocks());
@@ -86,8 +87,8 @@ describe('POST /v1/establishments', () => {
 });
 
 describe('GET /v1/establishments/address-search', () => {
-  it('returns Mapbox suggestions', async () => {
-    (searchAddresses as jest.Mock).mockResolvedValue([{ mapboxId: 'address.123', address: '12 rue' }]);
+  it('returns IGN suggestions', async () => {
+    (searchAddresses as jest.Mock).mockResolvedValue([{ addressId: 'ban-address-123', address: '12 rue' }]);
     const res = await request(app)
       .get('/v1/establishments/address-search?q=12%20rue')
       .set('Authorization', `Bearer ${organizerToken}`);

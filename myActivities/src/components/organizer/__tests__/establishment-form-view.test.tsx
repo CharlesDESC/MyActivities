@@ -28,7 +28,7 @@ const mockSelectAddress = jest.fn();
 const mockSubmit = jest.fn();
 
 const suggestion = {
-  mapboxId: 'address.123',
+  addressId: 'ban-address-123',
   address: '12 rue de la République, 69001 Lyon',
   latitude: 45.767,
   longitude: 4.835,
@@ -83,12 +83,12 @@ describe('EstablishmentFormView', () => {
     expect(mockSearchAddress).toHaveBeenCalledTimes(1);
   });
 
-  it('lets the organizer select a Mapbox suggestion', async () => {
+  it('lets the organizer select an IGN suggestion', async () => {
     useFormState({ selectedAddress: null, suggestions: [suggestion] });
     await render(<EstablishmentFormView />);
     await fireEvent.press(screen.getByLabelText(`Choisir ${suggestion.address}`));
     expect(mockSelectAddress).toHaveBeenCalledWith(suggestion);
-    expect(screen.getByText('Adresses fournies par Mapbox')).toBeTruthy();
+    expect(screen.getByText('Adresses fournies par cartes.gouv.fr (IGN)')).toBeTruthy();
   });
 
   it('submits then opens the dashboard', async () => {

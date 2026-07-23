@@ -62,7 +62,9 @@ describe('useNearbyActivities — requête', () => {
     const { result } = await renderHook(() => useNearbyActivities(PARIS));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => { await result.current.refetch(); });
+    await act(async () => {
+      await result.current.refetch();
+    });
 
     expect(mockGet).toHaveBeenCalledTimes(2);
   });
@@ -136,7 +138,9 @@ describe('useNearbyActivities — erreurs', () => {
     await waitFor(() => expect(result.current.error).toBe('Boom'));
 
     mockGet.mockResolvedValue({ data: [rawItem], meta: {} });
-    await act(async () => { await result.current.refetch(); });
+    await act(async () => {
+      await result.current.refetch();
+    });
 
     expect(result.current.error).toBeNull();
     expect(result.current.activities).toHaveLength(1);

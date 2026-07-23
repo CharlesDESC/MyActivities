@@ -83,7 +83,7 @@ function EstablishmentForm({ initial }: { initial: Establishment | null }) {
         <ThemedView type="backgroundElement" style={styles.suggestions}>
           {form.suggestions.map((suggestion) => (
             <Pressable
-              key={suggestion.mapboxId}
+              key={suggestion.addressId}
               onPress={() => form.selectAddress(suggestion)}
               accessibilityRole="button"
               accessibilityLabel={`Choisir ${suggestion.address}`}
@@ -93,7 +93,7 @@ function EstablishmentForm({ initial }: { initial: Establishment | null }) {
             </Pressable>
           ))}
           <ThemedText type="small" themeColor="textSecondary" style={styles.attribution}>
-            Adresses fournies par Mapbox
+            Adresses fournies par cartes.gouv.fr (IGN)
           </ThemedText>
         </ThemedView>
       )}

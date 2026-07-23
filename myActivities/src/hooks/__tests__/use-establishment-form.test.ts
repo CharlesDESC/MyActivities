@@ -14,7 +14,7 @@ const mockPost = api.post as jest.Mock;
 const mockPatch = api.patch as jest.Mock;
 
 const suggestion: AddressSuggestion = {
-  mapboxId: 'address.123',
+  addressId: 'ban-address-123',
   address: '12 rue de la République, 69001 Lyon',
   latitude: 45.767,
   longitude: 4.835,
@@ -26,7 +26,7 @@ const establishment: Establishment = {
   address: suggestion.address,
   latitude: suggestion.latitude,
   longitude: suggestion.longitude,
-  mapboxId: suggestion.mapboxId,
+  addressId: suggestion.addressId,
   phone: null,
   websiteUrl: null,
   createdAt: '2026-07-01T10:00:00.000Z',
@@ -65,7 +65,7 @@ describe('useEstablishmentForm', () => {
     expect(result.current.errors.address).toBeDefined();
   });
 
-  it('searches and selects a Mapbox address', async () => {
+  it('searches and selects an IGN address', async () => {
     const { result } = await renderHook(() => useEstablishmentForm(null));
     await act(async () => { result.current.setField('addressQuery', '12 rue Lyon'); });
     mockGet.mockResolvedValueOnce({ data: [suggestion] });
@@ -88,7 +88,8 @@ describe('useEstablishmentForm', () => {
     await act(async () => { await result.current.submit(); });
     expect(mockPost).toHaveBeenCalledWith('/establishments', {
       name: 'Atelier des quais',
-      mapboxId: 'address.123',
+      addressId: 'ban-address-123',
+      address: '12 rue de la République, 69001 Lyon',
       phone: null,
       websiteUrl: 'https://example.fr',
     });

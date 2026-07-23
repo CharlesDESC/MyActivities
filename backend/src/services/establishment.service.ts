@@ -1,7 +1,7 @@
 import { pool } from '../db/pool';
 import { AppError } from '../middleware/errorHandler';
 import { lookupSiret } from '../lib/siret';
-import { resolvePermanentAddress } from '../lib/mapbox-geocoding';
+import { resolveAddress } from '../lib/ign-geocoding';
 import { Establishment, EstablishmentPrefill, UserRole } from '../types';
 import { CreateEstablishmentInput, UpdateEstablishmentInput } from '../schemas/establishment';
 
@@ -10,7 +10,7 @@ const SELECT_FIELDS = `
   e.id, e.name, e.address,
   ST_Y(e.location::geometry) AS latitude,
   ST_X(e.location::geometry) AS longitude,
-  e.mapbox_id  AS "mapboxId",
+  e.address_id AS "addressId",
   e.phone,
   e.website_url AS "websiteUrl",
   e.organizer_id AS "organizerId",
@@ -99,15 +99,15 @@ export async function createEstablishment(
     throw new AppError(409, 'Ce compte possède déjà un établissement.', 'ESTABLISHMENT_EXISTS');
   }
 
-  const place = await resolvePermanentAddress(data.mapboxId);
+  const place = await resolveAddress(data.addressId, data.address);
   const { rows } = await pool.query<{ id: string }>(
-    `INSERT INTO establishments (organizer_id, name, address, location, mapbox_id, phone, website_url)
+    `INSERT INTO establishments (organizer_id, name, address, location, address_id, phone, website_url)
      VALUES ($1, $2, $3, ST_MakePoint($4, $5)::geography, $6, $7, $8)
      RETURNING id`,
     [
       organizerId, data.name, place.address,
       place.longitude, place.latitude,
-      place.mapboxId, data.phone ?? null, data.websiteUrl ?? null,
+      place.addressId, data.phone ?? null, data.websiteUrl ?? null,
     ],
   );
   return getEstablishment(rows[0].id, organizerId, 'organizer');
@@ -127,14 +127,14 @@ export async function updateEstablishment(
   let idx = 1;
 
   if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
-  if (data.mapboxId !== undefined) {
-    const place = await resolvePermanentAddress(data.mapboxId);
+  if (data.addressId !== undefined && data.address !== undefined) {
+    const place = await resolveAddress(data.addressId, data.address);
     fields.push(`address = $${idx++}`);
     values.push(place.address);
     fields.push(`location = ST_MakePoint($${idx++}, $${idx++})::geography`);
     values.push(place.longitude, place.latitude);
-    fields.push(`mapbox_id = $${idx++}`);
-    values.push(place.mapboxId);
+    fields.push(`address_id = $${idx++}`);
+    values.push(place.addressId);
   }
   if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
   if (data.websiteUrl !== undefined) { fields.push(`website_url = $${idx++}`); values.push(data.websiteUrl); }

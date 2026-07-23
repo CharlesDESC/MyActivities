@@ -488,7 +488,7 @@ components:
     # ── Establishment ────────────────────────────
     Establishment:
       type: object
-      required: [id, name, address, latitude, longitude, mapboxId, createdAt, updatedAt]
+      required: [id, name, address, latitude, longitude, addressId, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -505,7 +505,7 @@ components:
         longitude:
           type: number
           format: double
-        mapboxId:
+        addressId:
           type: string
         phone:
           type: string
@@ -523,15 +523,18 @@ components:
 
     EstablishmentWriteRequest:
       type: object
-      required: [name, mapboxId]
+      required: [name, addressId, address]
       properties:
         name:
           type: string
           minLength: 2
           maxLength: 100
-        mapboxId:
+        addressId:
           type: string
-          description: Suggestion sélectionnée, résolue avec permanent=true côté serveur.
+          description: Identifiant BAN/IGN de la suggestion sélectionnée.
+        address:
+          type: string
+          description: Libellé de la suggestion, revérifié côté serveur auprès de l'IGN.
         phone:
           type: string
           nullable: true
@@ -547,9 +550,12 @@ components:
           type: string
           minLength: 2
           maxLength: 100
-        mapboxId:
+        addressId:
           type: string
-          description: Nouvelle suggestion sélectionnée. Si elle est absente, l'adresse actuelle est conservée.
+          description: Identifiant BAN/IGN de la nouvelle suggestion sélectionnée.
+        address:
+          type: string
+          description: À fournir avec addressId. Si les deux sont absents, l'adresse actuelle est conservée.
         phone:
           type: string
           nullable: true
@@ -561,7 +567,7 @@ components:
     AddressSuggestion:
       type: object
       properties:
-        mapboxId:
+        addressId:
           type: string
         address:
           type: string
@@ -1892,7 +1898,7 @@ paths:
   /establishments/address-search:
     get:
       tags: [Establishments]
-      summary: Rechercher temporairement une adresse Mapbox
+      summary: Rechercher une adresse française avec la Géoplateforme IGN
       security:
         - BearerAuth: []
       parameters:
@@ -1904,7 +1910,7 @@ paths:
             minLength: 3
       responses:
         '200':
-          description: Suggestions temporaires non enregistrées
+          description: Suggestions issues de la Base Adresse Nationale
           content:
             application/json:
               schema:

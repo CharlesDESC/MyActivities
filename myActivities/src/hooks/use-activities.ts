@@ -44,19 +44,24 @@ function mapItem(r: RawListItem): ActivitySummary {
 
 export function useNearbyActivities(
   center: { latitude: number; longitude: number } | null,
-  radiusKm = 50,
+  radiusKm = 50
 ) {
   const [activities, setActivities] = useState<ActivitySummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchActivities = useCallback(async () => {
-    if (!center) return;
+    if (!center) {
+      setActivities([]);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       setError(null);
       const result = await api.get<RawList>(
-        `/activities?lat=${center.latitude}&lng=${center.longitude}&radius=${radiusKm}&limit=50`,
+        `/activities?lat=${center.latitude}&lng=${center.longitude}&radius=${radiusKm}&limit=50`
       );
       setActivities(result.data.map(mapItem));
     } catch (err) {
@@ -68,9 +73,11 @@ export function useNearbyActivities(
 
   // Recharge aussi quand l'utilisateur revient sur l'onglet après qu'une
   // nouvelle activité a été publiée depuis le back-office.
-  useFocusEffect(useCallback(() => {
-    void fetchActivities();
-  }, [fetchActivities]));
+  useFocusEffect(
+    useCallback(() => {
+      void fetchActivities();
+    }, [fetchActivities])
+  );
 
   return { activities, isLoading, error, refetch: fetchActivities };
 }

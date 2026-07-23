@@ -24,7 +24,7 @@ export type MapViewProps = {
 // changer de fournisseur ne demande aucune modification des écrans.
 export type MapProvider = {
   name: string;
-  /** false si la carte ne peut pas s'afficher ici (Expo Go, web, token manquant) */
+  /** false si aucune variante de la carte ne peut s'afficher (token manquant, par exemple). */
   isAvailable: () => boolean;
   MapView: ComponentType<MapViewProps>;
 };

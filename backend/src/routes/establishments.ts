@@ -6,7 +6,7 @@ import {
   UpdateEstablishmentSchema,
 } from '../schemas/establishment';
 import * as establishmentService from '../services/establishment.service';
-import { searchAddresses } from '../lib/mapbox-geocoding';
+import { searchAddresses } from '../lib/ign-geocoding';
 
 const router = Router();
 

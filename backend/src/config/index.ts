@@ -35,11 +35,6 @@ export const config = {
 
   appUrl: process.env.APP_URL ?? 'http://localhost:8081',
 
-  mapbox: {
-    // Secret serveur utilisé pour les appels Geocoding permanents.
-    accessToken: process.env.MAPBOX_ACCESS_TOKEN ?? '',
-  },
-
   activities: {
     // Temporairement désactivé tant que l'interface de modération admin n'est
     // pas disponible. Passer cette variable à `true` réactive le workflow
