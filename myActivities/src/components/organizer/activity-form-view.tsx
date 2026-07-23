@@ -180,7 +180,7 @@ export function ActivityFormView({
                         {errors.eventDate}
                       </ThemedText>
                     )}
-                    {values.eventDate && (
+                    {!!values.eventDate && (
                       <View style={styles.scheduleFields}>
                         <View style={styles.scheduleField}>
                           <ThemedText type="smallBold">Heure</ThemedText>

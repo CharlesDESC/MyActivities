@@ -122,3 +122,65 @@ describe('GET /v1/organizers/me/stats', () => {
     expect(res.status).toBe(500);
   });
 });
+
+describe('GET /v1/organizers/me/activities/:activityId/reservations', () => {
+  const ACT = 'act-1';
+
+  it('returns 401 without auth', async () => {
+    const res = await request(app).get(`/v1/organizers/me/activities/${ACT}/reservations`);
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for member', async () => {
+    const res = await request(app)
+      .get(`/v1/organizers/me/activities/${ACT}/reservations`)
+      .set('Authorization', `Bearer ${memberToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 200 with slots and attendees for the owner', async () => {
+    const slots = [
+      {
+        id: 'slot-1', startsAt: '2099-08-15T10:00:00.000Z', endsAt: null,
+        capacity: 20, booked: 1, remaining: 19,
+        attendees: [{ userId: 'user-2', pseudo: 'Bob', avatarUrl: null, reservedAt: '2099-08-01T09:00:00.000Z' }],
+      },
+    ];
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ organizer_id: 'org-1', name: 'Atelier' }], rowCount: 1 } as any) // ownership
+      .mockResolvedValueOnce({ rows: slots, rowCount: 1 } as any);                                        // slots + attendees
+    const res = await request(app)
+      .get(`/v1/organizers/me/activities/${ACT}/reservations`)
+      .set('Authorization', `Bearer ${organizerToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ activityId: ACT, activityName: 'Atelier' });
+    expect(res.body.slots[0].attendees[0].pseudo).toBe('Bob');
+  });
+
+  it('returns 404 when the activity does not exist', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 } as any);
+    const res = await request(app)
+      .get(`/v1/organizers/me/activities/${ACT}/reservations`)
+      .set('Authorization', `Bearer ${organizerToken}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 403 when the organizer does not own the activity', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ organizer_id: 'someone-else', name: 'Atelier' }], rowCount: 1 } as any);
+    const res = await request(app)
+      .get(`/v1/organizers/me/activities/${ACT}/reservations`)
+      .set('Authorization', `Bearer ${organizerToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('lets an admin read any activity reservations', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ organizer_id: 'org-1', name: 'Atelier' }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any);
+    const res = await request(app)
+      .get(`/v1/organizers/me/activities/${ACT}/reservations`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.slots).toEqual([]);
+  });
+});

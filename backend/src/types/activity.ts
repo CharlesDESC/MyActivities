@@ -72,3 +72,29 @@ export interface OrganizerStats {
   avgRating: number | null;
   reviewCount: number;
 }
+
+/** Un participant ayant réservé un créneau (vue organisateur). */
+export interface ReservationAttendee {
+  userId: string;
+  pseudo: string;
+  avatarUrl: string | null;
+  reservedAt: Date;
+}
+
+/** Un créneau avec ses réservations (vue organisateur). */
+export interface ReservationSlot {
+  id: string;
+  startsAt: Date;
+  endsAt: Date | null;
+  capacity: number;
+  booked: number;
+  remaining: number;
+  attendees: ReservationAttendee[];
+}
+
+/** Réservations d'une activité, groupées par créneau — schéma Swagger `ActivityReservations` */
+export interface ActivityReservations {
+  activityId: string;
+  activityName: string;
+  slots: ReservationSlot[];
+}

@@ -91,6 +91,26 @@ export type ActivitySlot = {
   remaining: number;
 };
 
+/** Un participant ayant réservé un créneau (vue organisateur). */
+export type ReservationAttendee = {
+  userId: string;
+  pseudo: string;
+  avatarUrl: string | null;
+  reservedAt: string;
+};
+
+/** Un créneau avec la liste des participants ayant réservé. */
+export type ReservationSlot = ActivitySlot & {
+  attendees: ReservationAttendee[];
+};
+
+/** Réservations d'une activité, groupées par créneau. */
+export type ActivityReservations = {
+  activityId: string;
+  activityName: string;
+  slots: ReservationSlot[];
+};
+
 export const CATEGORY_CONFIG: Record<
   ActivityCategory,
   { label: string; icon: IconName; color: string }

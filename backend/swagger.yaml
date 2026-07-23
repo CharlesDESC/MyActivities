@@ -908,6 +908,65 @@ components:
           type: integer
           example: 22
 
+    ReservationAttendee:
+      type: object
+      description: Un participant ayant réservé un créneau.
+      properties:
+        userId:
+          type: string
+          format: uuid
+        pseudo:
+          type: string
+          example: Bob
+        avatarUrl:
+          type: string
+          nullable: true
+        reservedAt:
+          type: string
+          format: date-time
+
+    ReservationSlot:
+      type: object
+      description: Un créneau avec ses réservations.
+      properties:
+        id:
+          type: string
+          format: uuid
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        capacity:
+          type: integer
+          example: 20
+        booked:
+          type: integer
+          example: 7
+        remaining:
+          type: integer
+          example: 13
+        attendees:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReservationAttendee'
+
+    ActivityReservations:
+      type: object
+      description: Réservations d'une activité groupées par créneau (vue organisateur).
+      properties:
+        activityId:
+          type: string
+          format: uuid
+        activityName:
+          type: string
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReservationSlot'
+
   # ─────────────────────────────────────────────
   # PARAMETERS
   # ─────────────────────────────────────────────
@@ -2027,6 +2086,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /organizers/me/activities/{activityId}/reservations:
+    get:
+      tags: [Organizers]
+      summary: Réservations d'une de ses activités
+      description: |
+        Liste les créneaux de l'activité avec, pour chacun, les participants ayant
+        réservé (pseudo, avatar, date de réservation) et le nombre de places
+        restantes. Réservé à l'organisateur propriétaire de l'activité (ou un admin).
+      operationId: getActivityReservations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activityId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Réservations groupées par créneau
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityReservations'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ══════════════════════════════
   # ADMIN

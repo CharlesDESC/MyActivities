@@ -44,11 +44,12 @@ export default function MyActivitiesScreen() {
                   const status = item.status ? ACTIVITY_STATUS_CONFIG[item.status] : null;
                   const cat = CATEGORY_CONFIG[item.category];
                   return (
-                    <Pressable
-                      onPress={() => router.push({ pathname: '/activity/edit/[id]', params: { id: item.id } })}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Éditer ${item.name}`}>
-                      <ThemedView type="backgroundElement" style={styles.row}>
+                    <ThemedView type="backgroundElement" style={styles.row}>
+                      <Pressable
+                        onPress={() => router.push({ pathname: '/activity/edit/[id]', params: { id: item.id } })}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Éditer ${item.name}`}
+                        style={styles.rowMain}>
                         <Icon name={cat.icon} size={24} color={cat.color} />
                         <View style={styles.rowBody}>
                           <ThemedText type="smallBold" numberOfLines={1}>{item.name}</ThemedText>
@@ -59,8 +60,16 @@ export default function MyActivitiesScreen() {
                             <ThemedText style={styles.badgeText}>{status.label}</ThemedText>
                           </View>
                         )}
-                      </ThemedView>
-                    </Pressable>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => router.push({ pathname: '/activity/reservations/[id]', params: { id: item.id } })}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Réservations de ${item.name}`}
+                        hitSlop={8}
+                        style={styles.rowAction}>
+                        <Icon name="people" size={22} themeColor="textSecondary" />
+                      </Pressable>
+                    </ThemedView>
                   );
                 }}
                 ListEmptyComponent={

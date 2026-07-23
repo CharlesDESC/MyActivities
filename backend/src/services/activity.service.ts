@@ -3,7 +3,7 @@ import { AppError } from '../middleware/errorHandler';
 import { getCachedActivities, setCachedActivities, invalidateActivitiesCache } from '../lib/redis';
 import {
   ActivityListItem, ActivityDetail, ActivityRow, ActivityStatus,
-  OrganizerStats, PaginatedResult, UserRole,
+  OrganizerStats, ActivityReservations, ReservationSlot, PaginatedResult, UserRole,
 } from '../types';
 import { ListActivitiesInput, CreateActivityInput, UpdateActivityInput } from '../schemas/activity';
 import { resolveOrganizerEstablishment } from './establishment.service';
@@ -291,4 +291,48 @@ export async function getOrganizerStats(organizerId: string): Promise<OrganizerS
     [organizerId],
   );
   return rows;
+}
+
+/**
+ * Réservations d'une activité groupées par créneau (vue organisateur). Vérifie
+ * la propriété : un organisateur ne consulte que ses activités (admin : toutes).
+ */
+export async function getActivityReservations(
+  activityId: string,
+  userId: string,
+  role: UserRole,
+): Promise<ActivityReservations> {
+  const activity = await pool.query<{ organizer_id: string; name: string }>(
+    'SELECT organizer_id, name FROM activities WHERE id = $1',
+    [activityId],
+  );
+  if (activity.rowCount === 0) throw new AppError(404, 'Activité introuvable.', 'NOT_FOUND');
+  if (role !== 'admin' && activity.rows[0].organizer_id !== userId) {
+    throw new AppError(403, 'Accès refusé.', 'FORBIDDEN');
+  }
+
+  const { rows } = await pool.query<ReservationSlot>(
+    `SELECT
+       s.id, s.starts_at AS "startsAt", s.ends_at AS "endsAt", s.capacity,
+       COUNT(pe.id)::int AS booked,
+       (s.capacity - COUNT(pe.id))::int AS remaining,
+       COALESCE(
+         json_agg(
+           json_build_object(
+             'userId', u.id, 'pseudo', u.pseudo,
+             'avatarUrl', u.avatar_url, 'reservedAt', pe.created_at)
+           ORDER BY pe.created_at
+         ) FILTER (WHERE pe.id IS NOT NULL),
+         '[]'
+       ) AS attendees
+     FROM activity_slots s
+     LEFT JOIN planning_entries pe ON pe.slot_id = s.id
+     LEFT JOIN users u ON u.id = pe.user_id
+     WHERE s.activity_id = $1
+     GROUP BY s.id
+     ORDER BY s.starts_at ASC`,
+    [activityId],
+  );
+
+  return { activityId, activityName: activity.rows[0].name, slots: rows };
 }
