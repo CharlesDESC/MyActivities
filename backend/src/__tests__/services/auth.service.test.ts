@@ -10,13 +10,18 @@ jest.mock('../../lib/tokens', () => ({
   generateOpaqueToken: jest.fn().mockReturnValue('rawtoken64chars'),
   hashToken: jest.fn().mockReturnValue('sha256hashedtoken'),
 }));
+jest.mock('../../lib/siret', () => ({
+  lookupSiret: jest.fn(),
+}));
 
 import { pool } from '../../db/pool';
 import * as authService from '../../services/auth.service';
 import { verifyPassword } from '../../lib/password';
+import { lookupSiret } from '../../lib/siret';
 
 const mockQuery = pool.query as jest.Mock;
 const mockConnect = pool.connect as jest.Mock;
+const mockLookupSiret = lookupSiret as jest.Mock;
 
 const mockUser = {
   id: 'user-1',
@@ -64,6 +69,12 @@ describe('auth.service — register', () => {
   });
 
   it('creates an organizer account when a SIRET is provided', async () => {
+    mockLookupSiret.mockResolvedValueOnce({
+      name: 'ClimbUp',
+      address: '12 rue',
+      latitude: 45.7,
+      longitude: 4.8,
+    });
     mockQuery
       .mockResolvedValueOnce({ rowCount: 0, rows: [] }) // no existing user
       .mockResolvedValueOnce({ rows: [{ id: 'orga-1', email: 'orga@example.com', pseudo: 'Orga', role: 'organizer', status: 'active', siret: '73282932000074', avatar_url: null, email_verified: false, created_at: new Date() }] })
@@ -71,8 +82,23 @@ describe('auth.service — register', () => {
 
     const result = await authService.register('orga@example.com', 'Orga', 'Pass1word!', '73282932000074');
     expect(result.user.role).toBe('organizer');
+    expect(mockLookupSiret).toHaveBeenCalledWith('73282932000074');
     const insertParams = mockQuery.mock.calls[1][1];
     expect(insertParams).toEqual(expect.arrayContaining(['organizer', '73282932000074']));
+  });
+
+  it('refuses organizer privileges when the SIRET cannot be verified', async () => {
+    mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] });
+    mockLookupSiret.mockResolvedValueOnce(null);
+
+    await expect(
+      authService.register('orga@example.com', 'Orga', 'Pass1word!', '12345678901234'),
+    ).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'SIRET_NOT_VERIFIED',
+    });
+
+    expect(mockQuery).toHaveBeenCalledTimes(1);
   });
 });
 

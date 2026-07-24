@@ -7,6 +7,8 @@ import { EstablishmentPrefill } from '../types';
 const BASE_URL = 'https://recherche-entreprises.api.gouv.fr/search';
 
 type EtablissementLike = {
+  siret?: string | null;
+  etat_administratif?: string | null;
   adresse?: string | null;
   geo_adresse?: string | null;
   latitude?: string | number | null;
@@ -14,6 +16,7 @@ type EtablissementLike = {
 };
 
 type SearchResult = {
+  etat_administratif?: string | null;
   nom_complet?: string | null;
   nom_raison_sociale?: string | null;
   siege?: EtablissementLike | null;
@@ -27,8 +30,9 @@ function toNumber(value: string | number | null | undefined): number | null {
 }
 
 /**
- * Recherche un établissement par SIRET. Retourne `null` si aucune correspondance
- * ou si l'API est indisponible (le pré-remplissage est optionnel, jamais bloquant).
+ * Recherche un établissement actif par SIRET. Retourne `null` si la
+ * correspondance n'est pas exacte, si l'entreprise ou l'établissement est
+ * fermé, ou si l'API est indisponible.
  */
 export async function lookupSiret(siret: string): Promise<EstablishmentPrefill | null> {
   const url = `${BASE_URL}?q=${encodeURIComponent(siret)}&per_page=1`;
@@ -45,8 +49,19 @@ export async function lookupSiret(siret: string): Promise<EstablishmentPrefill |
   const result = body.results?.[0];
   if (!result) return null;
 
-  // L'établissement précis (matching_etablissements) prime sur le siège social.
-  const etab = result.matching_etablissements?.[0] ?? result.siege ?? {};
+  const establishments = [
+    ...(result.matching_etablissements ?? []),
+    ...(result.siege ? [result.siege] : []),
+  ];
+  const etab = establishments.find((candidate) => candidate.siret === siret);
+  if (
+    !etab
+    || result.etat_administratif !== 'A'
+    || etab.etat_administratif !== 'A'
+  ) {
+    return null;
+  }
+
   const name = result.nom_complet ?? result.nom_raison_sociale ?? '';
   const address = etab.geo_adresse ?? etab.adresse ?? '';
 

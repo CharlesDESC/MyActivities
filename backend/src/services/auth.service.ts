@@ -5,6 +5,7 @@ import { generateAccessToken, generateOpaqueToken, hashToken } from '../lib/toke
 import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email';
 import { config } from '../config';
 import { UserRow, SafeUser, LoginResult, TokenPair, RefreshTokenRow } from '../types';
+import { lookupSiret } from '../lib/siret';
 
 async function checkBruteForce(identifier: string): Promise<void> {
   const { rows } = await pool.query<{ count: string }>(
@@ -52,8 +53,17 @@ export async function register(
     throw new AppError(409, 'Ce pseudo est déjà utilisé.', 'PSEUDO_ALREADY_EXISTS');
   }
 
+  if (siret && !(await lookupSiret(siret))) {
+    throw new AppError(
+      422,
+      'SIRET introuvable, inactif ou temporairement invérifiable.',
+      'SIRET_NOT_VERIFIED',
+    );
+  }
+
   const password_hash = await hashPassword(password);
-  // Un SIRET fourni (parcours organisateur web) crée directement un compte organizer.
+  // Le rôle organisateur n'est accordé qu'après validation du SIRET par
+  // l'API gouvernementale Recherche d'entreprises.
   const role = siret ? 'organizer' : 'member';
   const { rows } = await pool.query<SafeUser>(
     `INSERT INTO users (email, pseudo, password_hash, role, siret)

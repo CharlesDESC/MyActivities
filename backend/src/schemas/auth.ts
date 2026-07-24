@@ -10,8 +10,8 @@ export const RegisterSchema = z.object({
   email: z.string().email(),
   pseudo: z.string().min(3).max(30),
   password: passwordRule,
-  // Fourni lors de l'inscription d'un organisateur (parcours web) : crée un
-  // compte `organizer`. Absent → compte `member`.
+  // Fourni lors de l'inscription d'un organisateur : le service vérifie
+  // ensuite l'existence et l'activité de l'établissement avant d'accorder le rôle.
   siret: z.string().regex(/^\d{14}$/, 'Le SIRET doit comporter 14 chiffres').optional(),
 });
 
