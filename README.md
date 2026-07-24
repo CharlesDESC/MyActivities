@@ -9,19 +9,20 @@ Application de découverte, de planification et d’évaluation d’activités l
 
 ## État de la version
 
-| Élément | État de `v0.9.0` |
+| Élément | État de `v0.9.1` |
 |---|---|
-| Version remise | [`v0.9.0`](https://github.com/CharlesDESC/MyActivities/tree/v0.9.0) |
-| Commit qualifié | `f405076339788b25a817ee54816444f70f4e3c2d` |
+| Version remise | [`v0.9.1`](https://github.com/CharlesDESC/MyActivities/tree/v0.9.1) |
+| Commit qualifié | `65c56e8849cc7c69d6581f3eaf3bb1d2f67792de` |
 | Backend | Déployé sur Render |
 | Documentation API | Swagger disponible publiquement |
 | Base et cache distants | PostgreSQL et Valkey/Redis sur Render |
 | Mobile | Expo Go et soumission EAS Android `preview` |
 | Back-office web | Fonctionnel localement avec Expo Web |
-| Tests qualifiés | 483 backend et 285 mobile, sans échec |
+| Tests qualifiés | 491 backend et 299 mobile, sans échec |
+| Audit des dépendances de production | 0 vulnérabilité backend et client |
 | Publication en store | Non réalisée |
 
-`v0.9.0` est un prototype fonctionnel destiné à la démonstration et à l’évaluation. Le numéro majeur reste à zéro car le binaire Android final, iOS, le déploiement public du back-office et les stores ne sont pas encore qualifiés.
+`v0.9.1` est un prototype fonctionnel destiné à la démonstration et à l’évaluation. Cette correction ferme les risques liés au JSON malformé, au compteur de tentatives de connexion, à la vérification du SIRET et aux contrôles d’accessibilité retenus. Le numéro majeur reste à zéro car le binaire Android final, iOS, le déploiement public du back-office et les stores ne sont pas encore qualifiés.
 
 ## Liens utiles
 
@@ -148,7 +149,7 @@ Le client sépare les écrans Expo Router, les composants, les contextes, les ho
 git clone https://github.com/CharlesDESC/MyActivities.git
 Set-Location MyActivities
 git fetch --tags
-git checkout v0.9.0
+git checkout v0.9.1
 ```
 
 Pour travailler sur la branche courante plutôt que sur la version remise, remplacer la dernière commande par `git checkout main`.
@@ -242,7 +243,7 @@ npm run ios
 npm run web
 ```
 
-La commande iOS nécessite un environnement Apple adapté. Cette cible est prévue par le code mais n’a pas été qualifiée dans la version `v0.9.0`.
+La commande iOS nécessite un environnement Apple adapté. Cette cible est prévue par le code mais n’a pas été qualifiée dans la version `v0.9.1`.
 
 ## Installation sans Docker
 
@@ -337,7 +338,9 @@ npx jest --ci --coverage --coverageReporters=text-summary
 npm run build
 ```
 
-Résultat qualifié : **38 suites et 483 tests réussis**.
+Résultat qualifié : **39 suites et 491 tests réussis**.
+
+Couverture : **93,71 % statements, 84,01 % branches, 93,75 % functions et 94,97 % lines**.
 
 ### Client
 
@@ -349,7 +352,9 @@ npx tsc --noEmit
 npx jest --ci --coverage
 ```
 
-Résultat qualifié : **40 suites et 285 tests réussis**.
+Résultat qualifié : **41 suites et 299 tests réussis**.
+
+Couverture : **93,19 % statements, 83,78 % branches, 89,54 % functions et 94,48 % lines**. ESLint et TypeScript ne signalent aucune erreur ni aucun avertissement.
 
 ### Performance
 
@@ -407,6 +412,9 @@ Le profil EAS `production` référence encore un domaine API non qualifié. Il n
 - validation Zod des entrées ;
 - limitation globale et limitation renforcée de la connexion ;
 - tentatives d’authentification persistées dans PostgreSQL ;
+- échecs enregistrés seulement après comparaison négative du mot de passe ;
+- JSON malformé transformé en réponse `400 INVALID_JSON` sans détail interne ;
+- SIRET organisateur vérifié auprès de l’API publique Recherche d’entreprises avant attribution du rôle ;
 - en-têtes Helmet et politique CORS explicite ;
 - suppression de compte par anonymisation et révocation des sessions ;
 - consentement demandé avant l’usage de la géolocalisation ;
@@ -426,10 +434,13 @@ Le projet applique notamment :
 - navigation clavier et focus visible sur le web ;
 - contrôle du back-office à 200 % de zoom ;
 - absence de dépendance aux emojis système pour les icônes fonctionnelles.
+- cibles tactiles principales d’au moins 44 × 44 ;
+- messages de statut annoncés par les technologies d’assistance ;
+- alternative textuelle à la carte et contrastes non textuels vérifiés automatiquement.
 
-Le référentiel retenu pour l’évaluation est le RGAA, complété par les pratiques WCAG applicables au mobile. Une recette VoiceOver iOS complète reste à réaliser.
+Le référentiel retenu pour l’évaluation est le RGAA 4.1.2 pour le web, complété par douze critères WCAG 2.2 A/AA applicables au mobile. Les douze contrôles du périmètre déclaré sont satisfaits ; cela ne constitue pas une déclaration de conformité RGAA globale. Une recette VoiceOver iOS complète reste à réaliser.
 
-## Limites connues de `v0.9.0`
+## Limites connues de `v0.9.1`
 
 - pas de publication Google Play ni App Store ;
 - résultat final d’un APK EAS installé non joint au dépôt public ;
