@@ -88,33 +88,41 @@ describe('auth.service — login', () => {
   it('throws 401 if user not found', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [{ count: '0' }] })  // brute force OK
-      .mockResolvedValue({ rows: [] });                    // no user found + subsequent calls
+      .mockResolvedValueOnce({ rows: [] })                 // no user found
+      .mockResolvedValueOnce({ rows: [] });                // record failed attempt
     (verifyPassword as jest.Mock).mockResolvedValue(false);
 
     await expect(authService.login('nobody', 'pass', '127.0.0.1')).rejects.toMatchObject({
       statusCode: 401,
       code: 'INVALID_CREDENTIALS',
     });
+    expect(mockQuery).toHaveBeenLastCalledWith(
+      expect.stringContaining('succeeded) VALUES ($1, $2, false)'),
+      ['nobody', '127.0.0.1'],
+    );
   });
 
   it('throws 401 if password is wrong', async () => {
     mockQuery
-      .mockResolvedValueOnce({ rows: [{ count: '0' }] })          // brute force OK
-      .mockResolvedValueOnce({ rows: [] })                          // fire-and-forget INSERT
-      .mockResolvedValueOnce({ rows: [mockUser] });                 // user found
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] }) // brute force OK
+      .mockResolvedValueOnce({ rows: [mockUser] })        // user found
+      .mockResolvedValueOnce({ rows: [] });               // record failed attempt
     (verifyPassword as jest.Mock).mockResolvedValue(false);
 
     await expect(authService.login(mockUser.pseudo, 'wrong', '127.0.0.1')).rejects.toMatchObject({
       statusCode: 401,
       code: 'INVALID_CREDENTIALS',
     });
+    expect(mockQuery).toHaveBeenLastCalledWith(
+      expect.stringContaining('succeeded) VALUES ($1, $2, false)'),
+      [mockUser.pseudo, '127.0.0.1'],
+    );
   });
 
   it('throws 403 if account is suspended', async () => {
     const suspendedUser = { ...mockUser, status: 'suspended', suspended_until: new Date(Date.now() + 3600_000).toISOString() };
     mockQuery
       .mockResolvedValueOnce({ rows: [{ count: '0' }] })
-      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [suspendedUser] });
     (verifyPassword as jest.Mock).mockResolvedValue(true);
 
@@ -128,7 +136,6 @@ describe('auth.service — login', () => {
     const unverifiedUser = { ...mockUser, emailVerified: false };
     mockQuery
       .mockResolvedValueOnce({ rows: [{ count: '0' }] })
-      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [unverifiedUser] });
     (verifyPassword as jest.Mock).mockResolvedValue(true);
 
@@ -141,9 +148,9 @@ describe('auth.service — login', () => {
   it('returns tokens on successful login', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [{ count: '0' }] })  // brute force
-      .mockResolvedValueOnce({ rows: [] })                  // fire-and-forget INSERT
       .mockResolvedValueOnce({ rows: [mockUser] })          // SELECT user
-      .mockResolvedValue({ rows: [] });                     // markAttemptSuccess + INSERT refresh
+      .mockResolvedValueOnce({ rows: [] })                  // clear failures + successful attempt
+      .mockResolvedValueOnce({ rows: [] });                 // INSERT refresh
     (verifyPassword as jest.Mock).mockResolvedValue(true);
 
     const result = await authService.login(mockUser.pseudo, 'Pass1word!', '127.0.0.1');
@@ -151,6 +158,13 @@ describe('auth.service — login', () => {
     expect(result.refreshToken).toBe('rawtoken64chars');
     expect(result.expiresIn).toBe(900);
     expect(result.user).not.toHaveProperty('password_hash');
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('DELETE FROM login_attempts'),
+      [mockUser.pseudo, '127.0.0.1'],
+    );
+    expect(mockQuery.mock.calls.some(([sql]) => (
+      typeof sql === 'string' && sql.includes('succeeded) VALUES ($1, $2, false)')
+    ))).toBe(false);
   });
 });
 

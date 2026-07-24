@@ -6,7 +6,7 @@ import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email';
 import { config } from '../config';
 import { UserRow, SafeUser, LoginResult, TokenPair, RefreshTokenRow } from '../types';
 
-async function checkBruteForce(identifier: string, ip: string): Promise<void> {
+async function checkBruteForce(identifier: string): Promise<void> {
   const { rows } = await pool.query<{ count: string }>(
     `SELECT COUNT(*)::text FROM login_attempts
      WHERE identifier = $1 AND succeeded = false
@@ -16,6 +16,9 @@ async function checkBruteForce(identifier: string, ip: string): Promise<void> {
   if (parseInt(rows[0].count, 10) >= config.auth.rateLimitMax) {
     throw new AppError(429, 'Compte temporairement bloqué. Réessayez dans 15 minutes.', 'RATE_LIMITED');
   }
+}
+
+async function recordFailedAttempt(identifier: string, ip: string): Promise<void> {
   await pool.query(
     'INSERT INTO login_attempts (identifier, ip_address, succeeded) VALUES ($1, $2, false)',
     [identifier, ip],
@@ -24,7 +27,10 @@ async function checkBruteForce(identifier: string, ip: string): Promise<void> {
 
 async function markAttemptSuccess(identifier: string, ip: string): Promise<void> {
   await pool.query(
-    'INSERT INTO login_attempts (identifier, ip_address, succeeded) VALUES ($1, $2, true)',
+    `WITH cleared_failures AS (
+       DELETE FROM login_attempts WHERE identifier = $1 AND succeeded = false
+     )
+     INSERT INTO login_attempts (identifier, ip_address, succeeded) VALUES ($1, $2, true)`,
     [identifier, ip],
   );
 }
@@ -79,7 +85,7 @@ export async function login(
   ip: string,
   rememberMe = false,
 ): Promise<LoginResult> {
-  await checkBruteForce(pseudo, ip);
+  await checkBruteForce(pseudo);
 
   const { rows } = await pool.query<SafeUser & Pick<UserRow, 'password_hash' | 'suspended_until'>>(
     `SELECT id, email, pseudo, role, status, siret,
@@ -89,7 +95,13 @@ export async function login(
     [pseudo],
   );
 
-  if (rows.length === 0 || !(await verifyPassword(password, rows[0].password_hash))) {
+  if (rows.length === 0) {
+    await recordFailedAttempt(pseudo, ip);
+    throw new AppError(401, 'Pseudo ou mot de passe incorrect.', 'INVALID_CREDENTIALS');
+  }
+
+  if (!(await verifyPassword(password, rows[0].password_hash))) {
+    await recordFailedAttempt(pseudo, ip);
     throw new AppError(401, 'Pseudo ou mot de passe incorrect.', 'INVALID_CREDENTIALS');
   }
 
