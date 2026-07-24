@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 import { Spacing, WebContentWidth, WebHeaderHeight } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
@@ -36,6 +37,7 @@ export const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   pressed: { opacity: 0.7 },
   tabButtonView: {
+    minHeight: MINIMUM_TOUCH_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.one,

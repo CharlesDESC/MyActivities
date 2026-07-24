@@ -35,7 +35,8 @@ export default function LoginScreen() {
                 <ThemedView
                   type="background"
                   style={styles.globalError}
-                  accessibilityRole="alert">
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive">
                   <ThemedText type="small" style={styles.errorText}>
                     {errors.global}
                   </ThemedText>

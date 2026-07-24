@@ -20,9 +20,12 @@ function logLocation(step: string, details?: unknown): void {
   if (!__DEV__) return;
   const prefix = `[location] ${step}`;
   if (details === undefined) {
+    // Trace locale volontaire, désactivée dans les builds de production.
+    // eslint-disable-next-line no-console
     console.info(prefix);
     return;
   }
+  // eslint-disable-next-line no-console
   console.info(prefix, details);
 }
 
@@ -37,6 +40,7 @@ function logLocationError(step: string, error: unknown): void {
         }
       : error;
   // console.info conserve la trace de debug sans ouvrir la LogBox rouge.
+  // eslint-disable-next-line no-console
   console.info(`[location] ${step}`, details);
 }
 

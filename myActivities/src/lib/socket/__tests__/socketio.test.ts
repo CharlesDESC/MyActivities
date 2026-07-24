@@ -1,3 +1,5 @@
+/* Le mock doit être installé avant le chargement du client Socket.IO. */
+/* eslint-disable import/first */
 jest.mock('socket.io-client', () => {
   const socket = {
     connected: false,

@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 import { Spacing } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
@@ -40,9 +41,11 @@ export const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   chip: {
+    minHeight: MINIMUM_TOUCH_TARGET,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     borderRadius: 100,
+    justifyContent: 'center',
   },
   sectionLabel: {
     paddingHorizontal: Spacing.four,

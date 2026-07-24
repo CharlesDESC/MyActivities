@@ -26,6 +26,10 @@ describe('Button', () => {
     const onPress = jest.fn();
     await render(<Button label="Valider" onPress={onPress} loading />);
     expect(screen.queryByText('Valider')).toBeNull();
+    expect(screen.getByLabelText('Valider, chargement en cours')).toHaveProp(
+      'accessibilityState',
+      expect.objectContaining({ busy: true, disabled: true }),
+    );
     // loading implique disabled
     expect(onPress).not.toHaveBeenCalled();
   });

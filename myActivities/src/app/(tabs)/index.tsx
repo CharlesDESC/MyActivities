@@ -95,7 +95,11 @@ export default function HomeScreen() {
               </View>
 
               {location.message && (
-                <ThemedText type="small" themeColor="textSecondary" style={styles.locationNotice}>
+                <ThemedText
+                  type="small"
+                  themeColor="textSecondary"
+                  style={styles.locationNotice}
+                  accessibilityLiveRegion="polite">
                   {location.message}
                 </ThemedText>
               )}
@@ -104,6 +108,7 @@ export default function HomeScreen() {
               <View style={[styles.searchBar, { backgroundColor: theme.backgroundElement }]}>
                 <Icon name="search" size={18} themeColor="textSecondary" />
                 <TextInput
+                  accessibilityLabel="Rechercher une activité"
                   placeholder="Rechercher une activité..."
                   placeholderTextColor={theme.textSecondary}
                   value={search}
@@ -169,7 +174,10 @@ export default function HomeScreen() {
 
               {/* Section label */}
               <View style={styles.sectionLabel}>
-                <ThemedText type="smallBold" themeColor="textSecondary">
+                <ThemedText
+                  type="smallBold"
+                  themeColor="textSecondary"
+                  accessibilityLiveRegion="polite">
                   {filtered.length} activité{filtered.length !== 1 ? 's' : ''} autour de toi
                 </ThemedText>
               </View>
@@ -177,11 +185,20 @@ export default function HomeScreen() {
           }
           ListEmptyComponent={
             isLoading || location.isLocating ? (
-              <View style={styles.empty}>
-                <ActivityIndicator size="large" />
+              <View
+                accessible
+                accessibilityLiveRegion="polite"
+                accessibilityLabel="Chargement des activités"
+                style={styles.empty}>
+                <ActivityIndicator accessible={false} size="large" />
               </View>
             ) : error ? (
-              <View style={styles.empty}>
+              <View
+                accessible
+                accessibilityRole="alert"
+                accessibilityLiveRegion="assertive"
+                accessibilityLabel={`Impossible de charger les activités. ${error}`}
+                style={styles.empty}>
                 <Icon name="error-outline" size={40} themeColor="textSecondary" />
                 <ThemedText type="smallBold">Impossible de charger les activités</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
@@ -189,7 +206,11 @@ export default function HomeScreen() {
                 </ThemedText>
               </View>
             ) : (
-              <View style={styles.empty}>
+              <View
+                accessible
+                accessibilityLiveRegion="polite"
+                accessibilityLabel="Aucune activité trouvée. Essaie d'autres mots-clés ou modifie tes filtres."
+                style={styles.empty}>
                 <Icon name="search-off" size={40} themeColor="textSecondary" />
                 <ThemedText type="smallBold">Aucune activité trouvée</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>

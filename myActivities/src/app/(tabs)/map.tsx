@@ -74,7 +74,10 @@ export default function MapScreen() {
                     Activités triées par distance
                   </ThemedText>
                   {/* GPS banner */}
-                  <ThemedView type="backgroundElement" style={styles.locationBanner}>
+                  <ThemedView
+                    type="backgroundElement"
+                    style={styles.locationBanner}
+                    accessibilityLiveRegion="polite">
                     <Icon name="place" size={16} themeColor="textSecondary" />
                     <ThemedText type="small" themeColor="textSecondary" style={{ flex: 1 }}>
                       {location.source === 'device'
@@ -86,11 +89,24 @@ export default function MapScreen() {
               }
               ListEmptyComponent={
                 isLoading || location.isLocating ? (
-                  <View style={styles.emptyState}>
-                    <ActivityIndicator size="large" />
+                  <View
+                    accessible
+                    accessibilityLiveRegion="polite"
+                    accessibilityLabel="Chargement des activités à proximité"
+                    style={styles.emptyState}>
+                    <ActivityIndicator accessible={false} size="large" />
                   </View>
                 ) : (
-                  <View style={styles.emptyState}>
+                  <View
+                    accessible
+                    accessibilityRole={error ? 'alert' : undefined}
+                    accessibilityLiveRegion={error ? 'assertive' : 'polite'}
+                    accessibilityLabel={
+                      error
+                        ? `Impossible de charger les activités. ${error}`
+                        : 'Aucune activité à proximité'
+                    }
+                    style={styles.emptyState}>
                     <Icon
                       name={error ? 'error-outline' : 'map'}
                       size={40}
@@ -116,13 +132,17 @@ export default function MapScreen() {
             <ThemedView type="backgroundElement" style={styles.locationRequiredCard}>
               {location.isLocating ? (
                 <>
-                  <ActivityIndicator size="large" />
-                  <ThemedText type="smallBold">Recherche de ta position…</ThemedText>
+                  <ActivityIndicator accessible={false} size="large" />
+                  <ThemedText type="smallBold" accessibilityLiveRegion="polite">
+                    Recherche de ta position…
+                  </ThemedText>
                 </>
               ) : (
                 <>
                   <Icon name="location-off" size={48} themeColor="textSecondary" />
-                  <ThemedText type="subtitle">Carte désactivée</ThemedText>
+                  <ThemedText type="subtitle" accessibilityLiveRegion="polite">
+                    Carte désactivée
+                  </ThemedText>
                   <ThemedText
                     type="small"
                     themeColor="textSecondary"

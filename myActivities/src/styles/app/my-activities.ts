@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
@@ -29,7 +30,12 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(128,128,128,0.2)',
   },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  rowAction: { padding: Spacing.one },
+  rowAction: {
+    minWidth: MINIMUM_TOUCH_TARGET,
+    minHeight: MINIMUM_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   emoji: { fontSize: 26 },
   rowBody: { flex: 1, gap: Spacing.half },
   badge: {

@@ -31,10 +31,11 @@ export function StarRating({ value, max = 5, size = 'normal', onRate }: Props) {
           <Pressable
             key={i}
             onPress={() => onRate(i + 1)}
-            hitSlop={4}
+            style={styles.target}
             testID={testID}
             accessibilityRole="button"
-            accessibilityLabel={`Noter ${i + 1} étoile${i > 0 ? 's' : ''} sur ${max}`}>
+            accessibilityLabel={`Noter ${i + 1} étoile${i > 0 ? 's' : ''} sur ${max}`}
+            accessibilityState={{ selected: i + 1 === Math.round(value) }}>
             {star}
           </Pressable>
         ) : (

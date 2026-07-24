@@ -19,7 +19,12 @@ export default function ResetPasswordScreen() {
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.centered}>
-          <ThemedView style={styles.stateBox}>
+          <ThemedView
+            style={styles.stateBox}
+            accessible
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+            accessibilityLabel="Lien de réinitialisation invalide ou expiré.">
             <Icon name="error-outline" size={48} color="#D63A3A" />
             <ThemedText type="subtitle">Lien invalide</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.stateText}>
@@ -41,8 +46,12 @@ export default function ResetPasswordScreen() {
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.centered}>
-          <ThemedView style={styles.stateBox}>
-            <Icon name="check-circle" size={48} color="#22C55E" />
+          <ThemedView
+            style={styles.stateBox}
+            accessible
+            accessibilityLiveRegion="polite"
+            accessibilityLabel="Mot de passe mis à jour. Tu peux maintenant te connecter.">
+            <Icon name="check-circle" size={48} color="#15803D" />
             <ThemedText type="subtitle">Mot de passe mis à jour</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.stateText}>
               Ton mot de passe a bien été modifié. Tu peux maintenant te connecter.
@@ -78,7 +87,8 @@ export default function ResetPasswordScreen() {
                 <ThemedView
                   type="background"
                   style={styles.globalError}
-                  accessibilityRole="alert">
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive">
                   <ThemedText type="small" style={styles.errorText}>
                     {errors.global}
                   </ThemedText>

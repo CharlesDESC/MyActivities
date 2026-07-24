@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { PlanningCard } from '@/components/ui/planning-card';
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 import type { PlanningEntry } from '@/types/planning';
 
 const entry: PlanningEntry = {
@@ -29,5 +31,14 @@ describe('PlanningCard', () => {
     await render(<PlanningCard entry={entry} onRemove={onRemove} />);
     fireEvent.press(screen.getByLabelText(/Retirer .* du planning/));
     expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the removal action large enough for touch input', async () => {
+    await render(<PlanningCard entry={entry} onRemove={jest.fn()} />);
+    const button = screen.getByLabelText(/Retirer .* du planning/);
+    const style = StyleSheet.flatten(button.props.style);
+
+    expect(style.minWidth).toBeGreaterThanOrEqual(MINIMUM_TOUCH_TARGET);
+    expect(style.minHeight).toBeGreaterThanOrEqual(MINIMUM_TOUCH_TARGET);
   });
 });

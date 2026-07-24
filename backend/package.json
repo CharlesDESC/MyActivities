@@ -1,6 +1,6 @@
 {
   "name": "myactivities-backend",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "MyActivities REST API — Node.js + Express + TypeScript",
   "main": "dist/index.js",
   "scripts": {

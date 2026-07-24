@@ -115,12 +115,13 @@ export const CATEGORY_CONFIG: Record<
   ActivityCategory,
   { label: string; icon: IconName; color: string }
 > = {
-  sport:       { label: 'Sport',        icon: 'directions-run',   color: '#3B82F6' },
-  culture:     { label: 'Culture',      icon: 'theater-comedy',   color: '#8B5CF6' },
-  gastronomie: { label: 'Gastronomie',  icon: 'restaurant',       color: '#F97316' },
-  nature:      { label: 'Nature',       icon: 'park',             color: '#22C55E' },
-  bien_etre:   { label: 'Bien-être',    icon: 'self-improvement', color: '#EC4899' },
-  art:         { label: 'Art',          icon: 'palette',          color: '#EAB308' },
-  musique:     { label: 'Musique',      icon: 'music-note',       color: '#D63A3A' },
-  autre:       { label: 'Autre',        icon: 'category',         color: '#6B7280' },
+  // Chaque teinte atteint au moins 3:1 sur son fond teinté clair et sombre.
+  sport:       { label: 'Sport',        icon: 'directions-run',   color: '#2563EB' },
+  culture:     { label: 'Culture',      icon: 'theater-comedy',   color: '#7C3AED' },
+  gastronomie: { label: 'Gastronomie',  icon: 'restaurant',       color: '#C2410C' },
+  nature:      { label: 'Nature',       icon: 'park',             color: '#15803D' },
+  bien_etre:   { label: 'Bien-être',    icon: 'self-improvement', color: '#BE185D' },
+  art:         { label: 'Art',          icon: 'palette',          color: '#A16207' },
+  musique:     { label: 'Musique',      icon: 'music-note',       color: '#B91C1C' },
+  autre:       { label: 'Autre',        icon: 'category',         color: '#64748B' },
 };

@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 import { Spacing } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
@@ -22,9 +23,12 @@ export const styles = StyleSheet.create({
   },
   action: {
     position: 'absolute',
-    right: Spacing.three,
+    right: 0,
     top: 0,
     bottom: 0,
+    minWidth: MINIMUM_TOUCH_TARGET,
+    minHeight: MINIMUM_TOUCH_TARGET,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   error: {

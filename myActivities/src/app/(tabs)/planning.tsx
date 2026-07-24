@@ -1,4 +1,4 @@
-import { Alert, FlatList, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { styles } from '@/styles/app/planning';
@@ -39,7 +39,14 @@ export default function PlanningScreen() {
       <ThemedView style={styles.errorContainer}>
         <Icon name="error-outline" size={36} themeColor="textSecondary" />
         <ThemedText type="subtitle">Erreur de chargement</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
+        <ThemedText
+          type="small"
+          themeColor="textSecondary"
+          accessibilityRole="alert"
+          accessibilityLiveRegion="assertive"
+          accessibilityLabel={`Erreur de chargement. ${error}`}>
+          {error}
+        </ThemedText>
         <Button label="Réessayer" variant="ghost" onPress={refresh} />
       </ThemedView>
     );
@@ -61,21 +68,36 @@ export default function PlanningScreen() {
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <ThemedText type="subtitle">Mon planning</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
+              <ThemedText
+                type="small"
+                themeColor="textSecondary"
+                accessibilityLiveRegion="polite">
                 {entries.length} activité{entries.length !== 1 ? 's' : ''} planifiée{entries.length !== 1 ? 's' : ''}
               </ThemedText>
             </View>
           }
           ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.empty}>
+            isLoading ? (
+              <View
+                accessible
+                accessibilityLiveRegion="polite"
+                accessibilityLabel="Chargement du planning"
+                style={styles.empty}>
+                <ActivityIndicator accessible={false} size="large" />
+              </View>
+            ) : (
+              <View
+                accessible
+                accessibilityLiveRegion="polite"
+                accessibilityLabel="Aucune activité planifiée"
+                style={styles.empty}>
                 <Icon name="event" size={44} themeColor="textSecondary" />
                 <ThemedText type="smallBold">Aucune activité planifiée</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
                   Explore les activités autour de toi et ajoute-en à ton planning !
                 </ThemedText>
               </View>
-            ) : null
+            )
           }
         />
       </SafeAreaView>

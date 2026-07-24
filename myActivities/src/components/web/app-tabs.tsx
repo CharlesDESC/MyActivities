@@ -55,15 +55,27 @@ export default function AppTabs() {
 type TabButtonProps = TabTriggerSlotProps & { icon: React.ReactNode; badge?: number };
 
 function TabButton({ children, isFocused, icon, badge = 0, ...props }: TabButtonProps) {
+  const label = typeof children === 'string' ? children : 'Navigation';
+  const accessibilityLabel =
+    badge > 0
+      ? `${label}, ${badge} message${badge > 1 ? 's' : ''} non lu${badge > 1 ? 's' : ''}`
+      : label;
+
   return (
-    <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
+    <Pressable
+      {...props}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityLiveRegion={badge > 0 ? 'polite' : 'none'}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: !!isFocused }}
+      style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView
         type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
         style={styles.tabButtonView}>
         <View style={styles.tabIcon}>
           {icon}
           {badge > 0 && (
-            <View style={styles.messageBadge}>
+            <View accessible={false} style={styles.messageBadge}>
               <ThemedText style={styles.messageBadgeText}>
                 {badge > 99 ? '99+' : badge}
               </ThemedText>

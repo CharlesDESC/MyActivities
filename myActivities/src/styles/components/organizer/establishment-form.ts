@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
@@ -8,6 +9,12 @@ export const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.two },
   form: { gap: Spacing.three, paddingBottom: BottomTabInset + Spacing.six },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
+  iconButton: {
+    minWidth: MINIMUM_TOUCH_TARGET,
+    minHeight: MINIMUM_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerText: { flex: 1, gap: Spacing.one },
   globalError: {
     padding: Spacing.three,

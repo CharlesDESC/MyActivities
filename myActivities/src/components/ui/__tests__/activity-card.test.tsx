@@ -50,4 +50,14 @@ describe('ActivityCard', () => {
     fireEvent.press(screen.getByText('Escalade en salle'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
+
+  it('exposes one meaningful accessible name for the whole card', async () => {
+    await render(<ActivityCard activity={makeActivity()} onPress={jest.fn()} />);
+
+    expect(
+      screen.getByLabelText(
+        /Escalade en salle, Sport\. Note 4\.5 sur 5, 12 avis\. 2\.3 km\. 10 .* 25/,
+      ),
+    ).toHaveProp('accessibilityRole', 'button');
+  });
 });

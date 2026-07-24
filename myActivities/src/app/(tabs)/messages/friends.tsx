@@ -90,7 +90,11 @@ export default function FriendsScreen() {
                 <Icon name="account-circle" size={28} themeColor="textSecondary" />
                 <ThemedText type="smallBold" style={styles.rowName} numberOfLines={1}>{item.pseudo}</ThemedText>
                 <Button label="Message" variant="ghost" style={styles.smallBtn} onPress={() => openDirect(item.id, item.pseudo)} />
-                <Pressable onPress={() => remove(item.id)} accessibilityRole="button" accessibilityLabel={`Retirer ${item.pseudo}`}>
+                <Pressable
+                  onPress={() => remove(item.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Retirer ${item.pseudo}`}
+                  style={styles.removeButton}>
                   <Icon name="close" size={18} color={theme.textSecondary} />
                 </Pressable>
               </View>

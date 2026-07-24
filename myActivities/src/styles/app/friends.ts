@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
@@ -14,7 +15,12 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.three,
   },
-  backButton: { paddingRight: Spacing.one },
+  backButton: {
+    minWidth: MINIMUM_TOUCH_TARGET,
+    minHeight: MINIMUM_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   backIcon: { fontSize: 26, lineHeight: 26 },
   headerTitle: { flex: 1 },
 
@@ -47,7 +53,13 @@ export const styles = StyleSheet.create({
   },
   avatar: { fontSize: 24 },
   rowName: { flex: 1 },
-  smallBtn: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.one, minHeight: 0 },
+  smallBtn: { paddingHorizontal: Spacing.three, minHeight: MINIMUM_TOUCH_TARGET },
+  removeButton: {
+    minWidth: MINIMUM_TOUCH_TARGET,
+    minHeight: MINIMUM_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   removeIcon: { fontSize: 16, paddingHorizontal: Spacing.two },
   empty: { textAlign: 'center', paddingTop: Spacing.six },
 });

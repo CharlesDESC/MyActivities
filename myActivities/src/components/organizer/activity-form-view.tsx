@@ -93,7 +93,11 @@ export function ActivityFormView({
         <OrganizerOnly>
           <WebContainer>
             <View style={styles.header}>
-              <Pressable onPress={handleBack} accessibilityRole="button" accessibilityLabel="Retour">
+              <Pressable
+                onPress={handleBack}
+                accessibilityRole="button"
+                accessibilityLabel="Retour"
+                style={styles.iconButton}>
                 <Icon name="arrow-back" size={24} />
               </Pressable>
               <ThemedText type="title" style={styles.title}>
@@ -102,10 +106,21 @@ export function ActivityFormView({
             </View>
 
             {loading || establishmentLoading ? (
-              <ActivityIndicator style={styles.center} />
+              <ActivityIndicator
+                accessible
+                accessibilityLabel="Chargement du formulaire d'activité"
+                accessibilityLiveRegion="polite"
+                style={styles.center}
+              />
             ) : establishmentError ? (
               <View style={styles.center}>
-                <ThemedText type="small" themeColor="textSecondary">{establishmentError}</ThemedText>
+                <ThemedText
+                  type="small"
+                  themeColor="textSecondary"
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive">
+                  {establishmentError}
+                </ThemedText>
               </View>
             ) : !establishment ? (
               <ThemedView type="backgroundElement" style={styles.establishmentRequired}>
@@ -119,7 +134,11 @@ export function ActivityFormView({
             ) : (
               <ScrollView ref={scrollRef} contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
                 {errors.global && (
-                  <ThemedView type="background" style={styles.globalError} accessibilityRole="alert">
+                  <ThemedView
+                    type="background"
+                    style={styles.globalError}
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="assertive">
                     <ThemedText type="small" style={styles.errorText}>{errors.global}</ThemedText>
                   </ThemedView>
                 )}
@@ -140,8 +159,12 @@ export function ActivityFormView({
                   {CATEGORIES.map((c) => {
                     const active = values.category === c;
                     return (
-                      <Pressable key={c} onPress={() => setField('category', c)}
-                        accessibilityRole="button" accessibilityState={{ selected: active }}>
+                      <Pressable
+                        key={c}
+                        onPress={() => setField('category', c)}
+                        accessibilityRole="button"
+                        accessibilityLabel={CATEGORY_CONFIG[c].label}
+                        accessibilityState={{ selected: active }}>
                         <ThemedView type={active ? 'backgroundSelected' : 'backgroundElement'} style={styles.pill}>
                           <ThemedText type="small" themeColor={active ? 'text' : 'textSecondary'}>
                             {CATEGORY_CONFIG[c].label}
@@ -176,7 +199,11 @@ export function ActivityFormView({
                       />
                     </View>
                     {errors.eventDate && (
-                      <ThemedText type="small" style={styles.errorText} accessibilityRole="alert">
+                      <ThemedText
+                        type="small"
+                        style={styles.errorText}
+                        accessibilityRole="alert"
+                        accessibilityLiveRegion="assertive">
                         {errors.eventDate}
                       </ThemedText>
                     )}
@@ -189,7 +216,11 @@ export function ActivityFormView({
                             onChange={(time) => setField('eventTime', time)}
                           />
                           {errors.eventTime && (
-                            <ThemedText type="small" style={styles.errorText} accessibilityRole="alert">
+                            <ThemedText
+                              type="small"
+                              style={styles.errorText}
+                              accessibilityRole="alert"
+                              accessibilityLiveRegion="assertive">
                               {errors.eventTime}
                             </ThemedText>
                           )}
@@ -223,8 +254,12 @@ export function ActivityFormView({
                 <ThemedText type="smallBold">Accessibilité</ThemedText>
                 <View style={styles.toggles}>
                   {([['pmr', 'PMR'], ['stroller', 'Poussette']] as const).map(([key, label]) => (
-                    <Pressable key={key} onPress={() => setField(key, !values[key])}
-                      accessibilityRole="checkbox" accessibilityState={{ checked: values[key] }}>
+                    <Pressable
+                      key={key}
+                      onPress={() => setField(key, !values[key])}
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={label}
+                      accessibilityState={{ checked: values[key] }}>
                       <ThemedView type="backgroundElement" style={styles.toggle}>
                         <View style={[styles.checkbox, { borderColor: theme.textSecondary }, values[key] && styles.checkboxOn]}>
                           {values[key] && <Icon name="check" size={14} color="#ffffff" />}

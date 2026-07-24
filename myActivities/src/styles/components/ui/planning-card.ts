@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 import { Spacing } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
@@ -34,7 +35,8 @@ export const styles = StyleSheet.create({
   address: { lineHeight: 16 },
 
   removeBtn: {
-    paddingHorizontal: Spacing.three,
+    minWidth: MINIMUM_TOUCH_TARGET,
+    minHeight: MINIMUM_TOUCH_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
   },

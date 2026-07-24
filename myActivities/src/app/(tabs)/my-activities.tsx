@@ -28,11 +28,22 @@ export default function MyActivitiesScreen() {
 
             {error ? (
               <View style={styles.center}>
-                <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
+                <ThemedText
+                  type="small"
+                  themeColor="textSecondary"
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive">
+                  {error}
+                </ThemedText>
                 <Button label="Réessayer" variant="ghost" onPress={refresh} />
               </View>
             ) : isLoading ? (
-              <ActivityIndicator style={styles.center} />
+              <ActivityIndicator
+                accessible
+                accessibilityLabel="Chargement des activités"
+                accessibilityLiveRegion="polite"
+                style={styles.center}
+              />
             ) : (
               <FlatList
                 data={activities}
@@ -73,7 +84,10 @@ export default function MyActivitiesScreen() {
                   );
                 }}
                 ListEmptyComponent={
-                  <View style={styles.empty}>
+                  <View
+                    accessible
+                    accessibilityLiveRegion="polite"
+                    accessibilityLabel="Aucune activité">
                     <Icon name="inbox" size={44} themeColor="textSecondary" />
                     <ThemedText type="smallBold">Aucune activité</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>

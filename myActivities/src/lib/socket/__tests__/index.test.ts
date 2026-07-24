@@ -1,3 +1,5 @@
+/* Le mock doit être installé avant le chargement du module testé. */
+/* eslint-disable import/first */
 jest.mock('socket.io-client', () => ({ io: jest.fn(() => ({ on: jest.fn(), emit: jest.fn(), disconnect: jest.fn() })) }));
 
 import { getRealtimeClient, __resetRealtimeClient } from '@/lib/socket';

@@ -45,6 +45,7 @@ function MapboxMapView({ center, zoom = 12, markers, onMarkerPress, style }: Map
             onPress={() => onMarkerPress?.(marker.id)}
             accessibilityRole="button"
             accessibilityLabel={`Activité ${marker.label}`}
+            accessibilityHint="Ouvre le détail de l'activité"
             style={[styles.marker, { backgroundColor: marker.color }]}
           >
             <Text style={styles.markerLabel}>{marker.label}</Text>
@@ -159,7 +160,9 @@ function StaticMapboxImage({ center, zoom = 12, markers }: Omit<MapViewProps, 's
       source={{ uri }}
       style={styles.fill}
       resizeMode="cover"
-      accessibilityLabel="Carte Mapbox des activités autour de ta position"
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel="Carte Mapbox des activités autour de ta position. Une liste équivalente est disponible sous la carte."
       onError={() => setFailedUri(uri)}
     />
   );
@@ -198,7 +201,8 @@ function ExpoGoMapboxMapView({ center, zoom = 12, markers, onMarkerPress, style 
           onError={() => setFailedHtml(html)}
           onHttpError={() => setFailedHtml(html)}
           style={styles.fill}
-          accessibilityLabel="Carte Mapbox interactive des activités"
+          accessible
+          accessibilityLabel="Carte Mapbox interactive des activités. Une liste équivalente est disponible sous la carte."
         />
       )}
       <View style={styles.staticBadge} pointerEvents="none">
@@ -243,9 +247,9 @@ const styles = StyleSheet.create({
   },
   staticBadgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
   marker: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,

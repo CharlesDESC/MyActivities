@@ -20,7 +20,11 @@ export default function RegisterScreen() {
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.centered}>
-          <ThemedView style={styles.successBox}>
+          <ThemedView
+            style={styles.successBox}
+            accessible
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={`Inscription réussie. Un lien de confirmation a été envoyé à ${values.email}.`}>
             <Icon name="mark-email-read" size={48} color="#0077CC" />
             <ThemedText type="subtitle">Vérifie ta boîte mail</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.successText}>
@@ -62,7 +66,8 @@ export default function RegisterScreen() {
                 <ThemedView
                   type="background"
                   style={styles.globalError}
-                  accessibilityRole="alert">
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive">
                   <ThemedText type="small" style={styles.errorText}>
                     {errors.global}
                   </ThemedText>

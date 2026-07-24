@@ -18,5 +18,16 @@ type Props = {
 /** Icône Material cross-platform (iOS / Android / web), teintée via le thème. */
 export function Icon({ name, size = 20, color, themeColor = 'text' }: Props) {
   const theme = useTheme();
-  return <MaterialIcons name={name} size={size} color={color ?? theme[themeColor]} />;
+  // Les icônes sont décoratives : leur information est reprise par un texte
+  // voisin ou par le nom accessible du contrôle parent.
+  return (
+    <MaterialIcons
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      name={name}
+      size={size}
+      color={color ?? theme[themeColor]}
+    />
+  );
 }

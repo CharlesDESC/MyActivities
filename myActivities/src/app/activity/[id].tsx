@@ -81,8 +81,12 @@ export default function ActivityDetailScreen() {
 
   if (isLoading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+      <ThemedView
+        style={styles.loadingContainer}
+        accessible
+        accessibilityLiveRegion="polite"
+        accessibilityLabel="Chargement du détail de l'activité">
+        <ActivityIndicator accessible={false} size="large" />
       </ThemedView>
     );
   }
@@ -91,7 +95,12 @@ export default function ActivityDetailScreen() {
     return (
       <ThemedView style={styles.errorContainer}>
         <Icon name="error-outline" size={40} themeColor="textSecondary" />
-        <ThemedText type="subtitle">Activité introuvable</ThemedText>
+        <ThemedText
+          type="subtitle"
+          accessibilityRole="alert"
+          accessibilityLiveRegion="assertive">
+          Activité introuvable
+        </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
         <Button label="Retour" variant="ghost" onPress={() => router.back()} />
       </ThemedView>
@@ -291,7 +300,11 @@ export default function ActivityDetailScreen() {
                 ) : (
                   <ThemedView type="backgroundElement" style={styles.planningModal}>
                     {slotsLoading ? (
-                      <ActivityIndicator />
+                      <ActivityIndicator
+                        accessible
+                        accessibilityLabel="Chargement des créneaux"
+                        accessibilityLiveRegion="polite"
+                      />
                     ) : hasSlots ? (
                       <>
                         <ThemedText type="smallBold">Choisir un jour</ThemedText>

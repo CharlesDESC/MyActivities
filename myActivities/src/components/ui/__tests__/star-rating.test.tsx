@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { StarRating } from '@/components/ui/star-rating';
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 
 describe('StarRating', () => {
   it('fills the rounded number of stars', async () => {
@@ -32,5 +34,18 @@ describe('StarRating', () => {
 
     fireEvent.press(screen.getAllByTestId('star-empty')[3]);
     expect(onRate).toHaveBeenCalledWith(4);
+  });
+
+  it('exposes the selected rating and a large target for every interactive star', async () => {
+    await render(<StarRating value={3} onRate={jest.fn()} />);
+    const thirdStar = screen.getByLabelText('Noter 3 étoiles sur 5');
+    const style = StyleSheet.flatten(thirdStar.props.style);
+
+    expect(thirdStar).toHaveProp(
+      'accessibilityState',
+      expect.objectContaining({ selected: true }),
+    );
+    expect(style.minWidth).toBeGreaterThanOrEqual(MINIMUM_TOUCH_TARGET);
+    expect(style.minHeight).toBeGreaterThanOrEqual(MINIMUM_TOUCH_TARGET);
   });
 });

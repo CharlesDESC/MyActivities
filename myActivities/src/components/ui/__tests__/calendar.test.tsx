@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { Calendar, toDateKey } from '@/components/ui/calendar';
+import { MINIMUM_TOUCH_TARGET } from '@/constants/accessibility';
 
 const MONTHS = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -62,5 +64,24 @@ describe('Calendar', () => {
     await waitFor(() =>
       expect(screen.getByText(`${MONTHS[next.getMonth()]} ${next.getFullYear()}`)).toBeTruthy(),
     );
+  });
+
+  it('keeps month navigation and day targets above the project minimums', async () => {
+    const key = toDateKey(today);
+    await render(
+      <Calendar markedDates={new Set([key])} selectedDate={null} onSelectDate={jest.fn()} />,
+    );
+
+    const nextButton = screen.getByLabelText('Mois suivant');
+    const dayButton = screen.getByLabelText(
+      `${today.getDate()} ${MONTHS[today.getMonth()]}, créneaux disponibles`,
+    );
+    const nextStyle = StyleSheet.flatten(nextButton.props.style);
+    const dayStyle = StyleSheet.flatten(dayButton.props.style);
+
+    expect(nextStyle.minWidth).toBeGreaterThanOrEqual(MINIMUM_TOUCH_TARGET);
+    expect(nextStyle.minHeight).toBeGreaterThanOrEqual(MINIMUM_TOUCH_TARGET);
+    expect(dayStyle.minWidth).toBeGreaterThanOrEqual(24);
+    expect(dayStyle.minHeight).toBeGreaterThanOrEqual(24);
   });
 });

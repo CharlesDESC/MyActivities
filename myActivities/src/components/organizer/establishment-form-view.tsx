@@ -31,7 +31,11 @@ function EstablishmentForm({ initial }: { initial: Establishment | null }) {
     <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         {initial && (
-          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Retour">
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+            style={styles.iconButton}>
             <Icon name="arrow-back" size={24} />
           </Pressable>
         )}
@@ -46,7 +50,11 @@ function EstablishmentForm({ initial }: { initial: Establishment | null }) {
       </View>
 
       {form.errors.global && (
-        <ThemedView type="background" style={styles.globalError} accessibilityRole="alert">
+        <ThemedView
+          type="background"
+          style={styles.globalError}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="assertive">
           <ThemedText type="small" style={styles.errorText}>{form.errors.global}</ThemedText>
         </ThemedView>
       )}
@@ -99,8 +107,13 @@ function EstablishmentForm({ initial }: { initial: Establishment | null }) {
       )}
 
       {form.selectedAddress && (
-        <ThemedView type="backgroundElement" style={styles.selectedAddress}>
-          <Icon name="check-circle" size={20} color="#22C55E" />
+        <ThemedView
+          type="backgroundElement"
+          style={styles.selectedAddress}
+          accessible
+          accessibilityLiveRegion="polite"
+          accessibilityLabel={`Adresse confirmée : ${form.selectedAddress.address}`}>
+          <Icon name="check-circle" size={20} color="#15803D" />
           <View style={styles.selectedAddressText}>
             <ThemedText type="smallBold">Adresse confirmée</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
@@ -145,10 +158,21 @@ export function EstablishmentFormView() {
         <OrganizerOnly>
           <WebContainer>
             {isLoading ? (
-              <ActivityIndicator style={styles.center} />
+              <ActivityIndicator
+                accessible
+                accessibilityLabel="Chargement de l'établissement"
+                accessibilityLiveRegion="polite"
+                style={styles.center}
+              />
             ) : error ? (
               <View style={styles.center}>
-                <ThemedText type="small" themeColor="textSecondary">{error}</ThemedText>
+                <ThemedText
+                  type="small"
+                  themeColor="textSecondary"
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive">
+                  {error}
+                </ThemedText>
                 <Button label="Réessayer" variant="ghost" onPress={refresh} />
               </View>
             ) : (
