@@ -1,310 +1,498 @@
 # MyActivities
 
-Application mobile multiplateforme (iOS, Android, Web) de découverte, de planification et d'évaluation d'activités locales.
+Application de découverte, de planification et d’évaluation d’activités locales, composée d’une API REST, d’une application Expo et d’un back-office web.
 
 [![Backend](https://github.com/CharlesDESC/MyActivities/actions/workflows/backend.yml/badge.svg)](https://github.com/CharlesDESC/MyActivities/actions/workflows/backend.yml)
 [![Mobile](https://github.com/CharlesDESC/MyActivities/actions/workflows/mobile.yml/badge.svg)](https://github.com/CharlesDESC/MyActivities/actions/workflows/mobile.yml)
 
-> Projet de certification **RNCP 39583 — Expert en Développement Logiciel (Bac+5)**.
-> Développement individuel : conception, réalisation, tests et déploiement.
+> Projet individuel réalisé pour la certification **RNCP 39583 — Expert en Développement Logiciel (Bac+5)** : conception, développement, tests, sécurité, accessibilité, intégration continue et déploiement.
 
----
+## État de la version
 
-## Sommaire
+| Élément | État de `v0.9.0` |
+|---|---|
+| Version remise | [`v0.9.0`](https://github.com/CharlesDESC/MyActivities/tree/v0.9.0) |
+| Commit qualifié | `f405076339788b25a817ee54816444f70f4e3c2d` |
+| Backend | Déployé sur Render |
+| Documentation API | Swagger disponible publiquement |
+| Base et cache distants | PostgreSQL et Valkey/Redis sur Render |
+| Mobile | Expo Go et soumission EAS Android `preview` |
+| Back-office web | Fonctionnel localement avec Expo Web |
+| Tests qualifiés | 483 backend et 285 mobile, sans échec |
+| Publication en store | Non réalisée |
 
-- [Contexte](#contexte)
-- [Fonctionnalités](#fonctionnalités)
-- [Stack technique](#stack-technique)
-- [Architecture](#architecture)
-- [Démarrage rapide](#démarrage-rapide)
-- [Variables d'environnement](#variables-denvironnement)
-- [Base de données](#base-de-données)
-- [API](#api)
-- [Tests](#tests)
-- [CI/CD](#cicd)
-- [Sécurité et RGPD](#sécurité-et-rgpd)
-- [Structure du dépôt](#structure-du-dépôt)
+`v0.9.0` est un prototype fonctionnel destiné à la démonstration et à l’évaluation. Le numéro majeur reste à zéro car le binaire Android final, iOS, le déploiement public du back-office et les stores ne sont pas encore qualifiés.
 
----
+## Liens utiles
 
-## Contexte
+- API : <https://myactivities-back.onrender.com>
+- Santé : <https://myactivities-back.onrender.com/health>
+- Swagger : <https://myactivities-back.onrender.com/v1/docs/>
+- Projet Expo : <https://expo.dev/accounts/charly_des/projects/myActivities>
+- Workflows GitHub : <https://github.com/CharlesDESC/MyActivities/actions>
 
-Trouver une activité à faire près de chez soi impose aujourd'hui de croiser plusieurs sources :
-réseaux sociaux, sites d'offices de tourisme, bouche-à-oreille. L'information est dispersée,
-rarement à jour, et le budget réel est souvent absent.
-
-MyActivities centralise ces informations dans une application unique : découverte géolocalisée,
-budget affiché, avis de la communauté, et planification personnelle.
-
-**Quatre rôles utilisateurs :**
-
-| Rôle | Périmètre |
-|------|-----------|
-| Visiteur | Consultation du catalogue et de la carte, sans compte |
-| Membre | Planning personnel, avis, messagerie, gestion d'amis |
-| Organisateur | Création et gestion de ses activités, tableau de bord de statistiques |
-| Administrateur | Modération des activités, gestion des utilisateurs, journal d'audit |
+L’hébergement Render utilise une offre de démonstration. La première requête peut être plus lente si le service doit sortir de veille.
 
 ## Fonctionnalités
 
-- **Découverte géolocalisée** — recherche d'activités autour d'une position, filtres par catégorie
-  (sport, culture, gastronomie, nature, bien-être, art, musique) et par budget
-- **Carte interactive** — affichage des établissements et de leurs activités, géocodage des adresses
-  via l'API IGN
-- **Planning personnel** — ajout d'un créneau d'activité à son agenda
-- **Avis et notes** — un avis unique par utilisateur et par activité, conditionné à un ajout au planning
-- **Messagerie temps réel** — conversations individuelles et de groupe via WebSocket, compteur de
-  messages non lus
-- **Réseau social léger** — demandes d'amis, liste de contacts
-- **Espace organisateur** — création et édition d'activités, créneaux, statistiques de consultation
-- **Administration** — validation des activités soumises, modération, journal d'audit
-- **Authentification complète** — inscription, vérification d'email, mot de passe oublié,
-  réinitialisation
+### Visiteur et membre
+
+- inscription, vérification d’email, connexion et réinitialisation du mot de passe ;
+- catalogue, recherche et filtres par catégorie, budget et proximité ;
+- géolocalisation, carte et géocodage des adresses via l’API IGN ;
+- consultation des activités et de leurs créneaux ;
+- ajout et retrait d’un créneau dans le planning personnel ;
+- avis et notation ;
+- demandes d’amis et liste de contacts ;
+- messagerie individuelle ou de groupe en temps réel.
+
+### Organisateur
+
+- gestion d’un établissement ;
+- création, modification et suppression d’activités ;
+- gestion des créneaux ;
+- consultation des réservations ;
+- tableau de bord et statistiques.
+
+### Administration
+
+L’API expose les opérations de gestion des utilisateurs, des rôles, des suspensions et de modération des activités. Dans la configuration MVP remise, `ACTIVITY_MODERATION_ENABLED=false` autorise la publication immédiate des activités. Une activation de la modération nécessite de recetter le parcours administrateur complet.
 
 ## Stack technique
 
 ### Backend
 
-| Composant | Choix | Justification |
-|-----------|-------|---------------|
-| Runtime | Node.js 20 | LTS, écosystème mature, TypeScript natif via ts-node |
-| Framework | Express 4 | Léger, non-opiniâtre, adapté à une API REST maîtrisée de bout en bout |
-| Langage | TypeScript 5 | Typage statique partagé avec le mobile, sécurité au refactoring |
-| Base de données | PostgreSQL 16 + PostGIS | Requêtes géospatiales natives pour la recherche par rayon |
-| Cache | Redis 7 | Mise en cache des requêtes de géolocalisation, stockage des tentatives de connexion |
-| Validation | Zod | Schémas de validation partagés, inférence de types |
-| Temps réel | Socket.IO | Messagerie instantanée, reconnexion automatique gérée |
-| Authentification | JWT + bcrypt | Access token 15 min / refresh token 7 jours, hash bcrypt |
-| Documentation | Swagger UI | Contrat d'API exposé sur `/v1/docs` |
-| Sécurité HTTP | Helmet, CORS, express-rate-limit | En-têtes durcis, limitation de débit |
+| Domaine | Technologie |
+|---|---|
+| Runtime et langage | Node.js 20, TypeScript 5 |
+| API | Express 4 |
+| Validation | Zod |
+| Données | PostgreSQL 16, PostGIS 3.4 |
+| Cache et diffusion | Redis 7 en local, Valkey/Redis sur Render |
+| Temps réel | Socket.IO |
+| Authentification | JWT, refresh tokens opaques, bcrypt |
+| Sécurité HTTP | Helmet, CORS, `express-rate-limit` |
+| Documentation | OpenAPI 3 et Swagger UI |
+| Tests | Jest et Supertest |
 
-### Mobile
+### Client
 
-| Composant | Choix | Justification |
-|-----------|-------|---------------|
-| Framework | React Native 0.86 + Expo 57 | Une base de code pour iOS, Android et Web |
-| Navigation | Expo Router | Routage par fichiers, cohérent avec la structure du projet |
-| Langage | TypeScript | Types partagés avec l'API |
-| Cartographie | `@rnmapbox/maps` | Couche cartographique isolée pour permettre un changement de fournisseur |
-| Icônes | `@expo/vector-icons` (MaterialIcons) | Rendu homogène entre plateformes, pas de dépendance aux emojis système |
-| Stockage sécurisé | `expo-secure-store` | Persistance des tokens (avec repli `localStorage` sur Web) |
+| Domaine | Technologie |
+|---|---|
+| Framework | Expo 57, React Native 0.86, React 19 |
+| Navigation | Expo Router |
+| Langage | TypeScript |
+| Cartographie | `@rnmapbox/maps`, WebView et image statique de repli |
+| Stockage des tokens | `expo-secure-store` |
+| Tests | Jest Expo et React Native Testing Library |
+| Build Android | EAS Build |
+
+### Exploitation
+
+| Domaine | Technologie |
+|---|---|
+| Environnement local | Docker Compose |
+| Intégration continue | GitHub Actions |
+| Backend distant | Render et image Docker multi-stage |
+| Mobile distant | Expo EAS Build |
+| Performance | k6 |
 
 ## Architecture
 
+```text
+┌──────────────────────────────┐
+│ Application Expo             │
+│ Android · iOS · Web          │
+└──────────────┬───────────────┘
+               │ HTTPS REST /v1 et WebSocket
+┌──────────────▼───────────────┐
+│ API Express / TypeScript     │
+│ routes → services → données  │
+│ auth · validation · erreurs  │
+└─────────┬───────────┬────────┘
+          │           │
+┌─────────▼──────┐ ┌──▼──────────────┐
+│ PostgreSQL     │ │ Redis / Valkey   │
+│ et PostGIS     │ │ cache et broker  │
+└────────────────┘ └─────────────────┘
+          │
+┌─────────▼──────────┐
+│ Services externes  │
+│ IGN · SMTP · Mapbox│
+└────────────────────┘
 ```
-┌──────────────────────────┐
-│   Application Expo        │  iOS · Android · Web
-│   React Native + Router   │
-└───────────┬───────────────┘
-            │ HTTPS REST (/v1) + WebSocket
-┌───────────▼───────────────┐
-│   API Express (Node 20)   │
-│  routes → services → db   │
-│  middleware auth / erreurs│
-└─────┬──────────────┬──────┘
-      │              │
-┌─────▼─────┐  ┌─────▼─────┐      ┌──────────────┐
-│ PostgreSQL │  │   Redis   │      │  API IGN     │
-│  + PostGIS │  │   cache   │      │  géocodage   │
-└────────────┘  └───────────┘      └──────────────┘
-```
 
-Le backend suit une séparation stricte en couches :
+Le backend suit une architecture en couches :
 
-- **`routes/`** — définition des endpoints, validation des entrées (Zod), aucune logique métier
-- **`services/`** — logique métier et accès aux données
-- **`middleware/`** — authentification JWT, gestion centralisée des erreurs, limitation de débit
-- **`schemas/`** — schémas Zod de validation, source de vérité des types d'entrée
-- **`realtime/`** — passerelle Socket.IO et broker de diffusion des messages
-- **`lib/`** — intégrations externes (géocodage, envoi d'emails, tokens, Redis)
+- `routes/` : endpoints HTTP et validation des entrées ;
+- `services/` : règles métier et accès aux données ;
+- `schemas/` : schémas Zod et types d’entrée ;
+- `middleware/` : authentification, autorisation, erreurs et limitation de débit ;
+- `realtime/` : passerelle Socket.IO ;
+- `lib/` : emails, géocodage, Redis et gestion des tokens ;
+- `db/` : client PostgreSQL, migrations et données de démonstration.
 
-## Démarrage rapide
+Le client sépare les écrans Expo Router, les composants, les contextes, les hooks métier, le client API et les adaptateurs techniques.
+
+## Démarrage rapide avec Docker
 
 ### Prérequis
 
-- Node.js 20+
-- Docker et Docker Compose (recommandé) ou PostgreSQL 16 + PostGIS et Redis 7 installés localement
+- Git ;
+- Docker Desktop avec Docker Compose v2 ;
+- Node.js 20 et npm pour le client Expo.
 
-### Option 1 — Docker Compose (recommandé)
+### 1. Récupérer la version
 
-Démarre l'API, PostgreSQL (avec PostGIS) et Redis d'un seul coup :
+```powershell
+git clone https://github.com/CharlesDESC/MyActivities.git
+Set-Location MyActivities
+git fetch --tags
+git checkout v0.9.0
+```
+
+Pour travailler sur la branche courante plutôt que sur la version remise, remplacer la dernière commande par `git checkout main`.
+
+### 2. Démarrer l’API, PostgreSQL et Redis
+
+Sous PowerShell :
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+docker compose up -d --build
+docker compose ps
+```
+
+Sous Bash :
 
 ```bash
 cp backend/.env.example backend/.env
-docker compose up
+docker compose up -d --build
+docker compose ps
 ```
 
-L'API est disponible sur <http://localhost:3000>, la documentation sur
-<http://localhost:3000/v1/docs>.
+Docker Compose configure automatiquement les connexions internes de PostgreSQL et Redis. Le fichier `backend/.env` reste utile pour les paramètres locaux optionnels, notamment SMTP.
 
-### Option 2 — Installation locale
+Vérifications :
 
-```bash
-# Backend
-cd backend
-cp .env.example .env          # puis renseigner DATABASE_URL et REDIS_URL
-npm install
-npm run migrate               # applique les migrations SQL
-npm run seed                  # (optionnel) jeu de données de démonstration
-npm run dev                   # http://localhost:3000
+```powershell
+curl.exe -sS http://localhost:3000/health
+curl.exe -sS -o NUL -w "%{http_code}" http://localhost:3000/v1/docs/
 ```
 
-```bash
-# Application mobile
-cd myActivities
-npm install
-npm start                     # puis « i » (iOS), « a » (Android) ou « w » (Web)
+Services locaux :
+
+| Service | Adresse |
+|---|---|
+| API | <http://localhost:3000> |
+| Swagger | <http://localhost:3000/v1/docs/> |
+| PostgreSQL | `localhost:5432` |
+| Redis | `localhost:6379` |
+
+Les migrations sont appliquées au démarrage du backend. Pour charger le jeu de démonstration :
+
+```powershell
+docker compose exec backend npm run seed
 ```
 
-## Variables d'environnement
+Pour arrêter les conteneurs en conservant les données :
 
-Le fichier `backend/.env.example` documente l'ensemble des variables. Les principales :
+```powershell
+docker compose down
+```
 
-| Variable | Rôle | Défaut |
-|----------|------|--------|
-| `PORT` | Port d'écoute de l'API | `3000` |
-| `DATABASE_URL` | Chaîne de connexion PostgreSQL | — |
-| `REDIS_URL` | Chaîne de connexion Redis | — |
-| `JWT_ACCESS_SECRET` | Secret de signature des access tokens | — |
-| `JWT_REFRESH_SECRET` | Secret de signature des refresh tokens | — |
-| `JWT_ACCESS_EXPIRES_IN` | Durée de vie de l'access token | `15m` |
-| `JWT_REFRESH_EXPIRES_IN` | Durée de vie du refresh token | `7d` |
-| `AUTH_RATE_LIMIT_MAX` | Tentatives de connexion avant blocage | `5` |
-| `AUTH_RATE_LIMIT_WINDOW_MS` | Fenêtre de blocage en millisecondes | `900000` (15 min) |
-| `CORS_ORIGIN` | Origine autorisée | `http://localhost:8081` |
-| `APP_URL` | Base des liens contenus dans les emails | `http://localhost:3000` |
+`docker compose down --volumes` supprime les volumes locaux et ne doit être utilisé que pour une réinitialisation volontaire.
+
+## Démarrage de l’application Expo
+
+```powershell
+Set-Location myActivities
+Copy-Item .env.example .env
+npm ci
+npm start
+```
+
+Sous Bash, utiliser `cp .env.example .env`.
+
+Configurer `myActivities/.env` sans y placer de valeur destinée au dépôt :
+
+| Variable | Usage | Sensibilité |
+|---|---|---|
+| `EXPO_PUBLIC_API_URL` | Base de l’API avec le suffixe `/v1` | Publique dans le client |
+| `EXPO_PUBLIC_MAPBOX_TOKEN` | Affichage des cartes | Jeton public |
+| `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` | Téléchargement du SDK pour un build natif | Secret |
+
+URL de l’API selon le client :
+
+| Client | URL |
+|---|---|
+| Expo Web | `http://localhost:3000/v1` |
+| Émulateur Android | `http://10.0.2.2:3000/v1` |
+| Téléphone sur le réseau local | IPv4 du poste suivie de `:3000/v1` |
+| API distante du prototype | `https://myactivities-back.onrender.com/v1` |
+
+Le projet prend en charge un repli cartographique dans Expo Go. Le module Mapbox natif nécessite un build de développement ou EAS.
+
+Commandes disponibles :
+
+```powershell
+npm start
+npm run android
+npm run ios
+npm run web
+```
+
+La commande iOS nécessite un environnement Apple adapté. Cette cible est prévue par le code mais n’a pas été qualifiée dans la version `v0.9.0`.
+
+## Installation sans Docker
+
+PostgreSQL avec PostGIS et Redis doivent être disponibles localement. Après avoir adapté `backend/.env` :
+
+```powershell
+Set-Location backend
+npm ci
+npm run migrate
+npm run seed
+npm run dev
+```
+
+Le seed est facultatif. Les migrations SQL sont versionnées dans `backend/src/db/migrations/`.
+
+## Variables du backend
+
+Le fichier `backend/.env.example` constitue la référence.
+
+| Variable | Rôle | Valeur locale habituelle |
+|---|---|---|
+| `PORT` | Port de l’API | `3000` |
+| `NODE_ENV` | Environnement | `development` |
+| `TRUST_PROXY_HOPS` | Nombre de proxies approuvés | `0` en local, `1` sur Render |
+| `DATABASE_URL` | Connexion PostgreSQL | Configurée par l’environnement |
+| `REDIS_URL` | Connexion Redis | Configurée par l’environnement |
+| `JWT_ACCESS_SECRET` | Signature des access tokens | Secret obligatoire |
+| `JWT_REFRESH_SECRET` | Signature des refresh tokens | Secret distinct obligatoire |
+| `JWT_ACCESS_EXPIRES_IN` | Durée de l’access token | `15m` |
+| `JWT_REFRESH_EXPIRES_IN` | Durée du refresh token | `7d` |
+| `AUTH_RATE_LIMIT_MAX` | Seuil d’authentification | `5` |
+| `AUTH_RATE_LIMIT_WINDOW_MS` | Fenêtre du limiteur | `900000` |
+| `CORS_ORIGIN` | Origine web autorisée | `http://localhost:8081` |
+| `APP_URL` | Base des liens envoyés par email | `http://localhost:3000` |
 | `EMAIL_PROVIDER` | `smtp` ou `brevo-api` | `smtp` |
-| `ACTIVITY_MODERATION_ENABLED` | Soumet les nouvelles activités à validation | `false` |
+| `ACTIVITY_MODERATION_ENABLED` | Validation préalable des activités | `false` pour le MVP |
 
-> Sans `SMTP_HOST` configuré, les liens de vérification et de réinitialisation sont simplement
-> écrits dans la console — pratique en développement.
+Sans serveur SMTP en développement, les liens de vérification et de réinitialisation sont écrits dans les journaux du backend.
 
-## Base de données
-
-Le schéma est versionné sous forme de migrations SQL numérotées dans
-`backend/src/db/migrations/`, appliquées séquentiellement par `npm run migrate`.
-
-```bash
-npm run migrate     # applique les migrations en attente
-npm run seed        # insère un jeu de données de démonstration
-```
-
-Le modèle complet est décrit en DBML dans `backend/database.dbml` (visualisable sur
-[dbdiagram.io](https://dbdiagram.io)).
-
-Principaux domaines : utilisateurs et authentification, activités et créneaux, établissements,
-planning, avis, messagerie et conversations de groupe, amitiés, journal d'audit administrateur.
+Les fichiers `.env` sont ignorés par Git. Aucun secret ne doit être placé dans une variable `EXPO_PUBLIC_`, une capture, un commit ou la documentation.
 
 ## API
 
-L'API est exposée sous le préfixe `/v1` et documentée via Swagger UI sur `/v1/docs`
-(source : `backend/swagger.yaml`).
+L’API est exposée sous `/v1`. Son contrat OpenAPI est défini dans `backend/swagger.yaml`.
 
-| Domaine | Base | Description |
-|---------|------|-------------|
-| Authentification | `/v1/auth` | Inscription, connexion, rafraîchissement, vérification d'email, réinitialisation |
-| Utilisateurs | `/v1/users` | Profil, préférences |
-| Activités | `/v1/activities` | Recherche, filtres, détail, CRUD organisateur |
-| Établissements | `/v1/establishments` | Lieux et géocodage |
-| Planning | `/v1/planning` | Agenda personnel |
-| Avis | `/v1` | Notes et commentaires |
-| Organisateurs | `/v1/organizers` | Tableau de bord, statistiques |
-| Messagerie | `/v1/messages` | Conversations individuelles et de groupe |
-| Amis | `/v1/friends` | Demandes et liste de contacts |
-| Administration | `/v1/admin` | Modération, gestion des utilisateurs |
-| Santé | `/health` | Sonde de disponibilité (utilisée par Render) |
+| Domaine | Routes principales |
+|---|---|
+| Authentification | `/v1/auth` |
+| Utilisateurs | `/v1/users` |
+| Activités | `/v1/activities` |
+| Établissements | `/v1/establishments` |
+| Planning | `/v1/planning` |
+| Avis | `/v1/activities/:activityId/reviews` |
+| Organisateurs | `/v1/organizers` |
+| Messagerie | `/v1/messages` |
+| Amis | `/v1/friends` |
+| Administration | `/v1/admin` |
+| Santé | `/health` |
+| Documentation | `/v1/docs/` |
 
-## Tests
+Swagger permet de consulter les schémas et les codes de réponse. Les routes protégées nécessitent un access token JWT dans l’en-tête `Authorization`.
 
-Le projet compte **37 fichiers de tests backend** (services, routes, schémas, middleware, temps réel)
-et **39 fichiers de tests mobile** (écrans, hooks, contextes, client API).
+## Base de données
 
-```bash
-# Backend — Jest + Supertest
-cd backend
-npm test
-npm run test:coverage
+Le modèle DBML se trouve dans `backend/database.dbml`. Les migrations couvrent notamment :
 
-# Mobile — Jest + React Native Testing Library
-cd myActivities
-npm test
-npm run test:coverage
+- utilisateurs, rôles, sessions et tentatives de connexion ;
+- activités, catégories, établissements et géolocalisation ;
+- créneaux, planning, réservations et avis ;
+- amitiés, conversations, groupes et messages ;
+- modération et journal d’audit.
+
+Commandes :
+
+```powershell
+Set-Location backend
+npm run migrate
+npm run seed
 ```
 
-Le typage est vérifié séparément :
+En production, `npm start` applique les migrations compilées avant de démarrer l’API.
 
-```bash
-cd backend && npx tsc --noEmit
+## Tests et qualité
+
+### Backend
+
+```powershell
+Set-Location backend
+npm ci
+npx tsc --noEmit
+npx jest --ci --coverage --coverageReporters=text-summary
+npm run build
 ```
+
+Résultat qualifié : **38 suites et 483 tests réussis**.
+
+### Client
+
+```powershell
+Set-Location myActivities
+npm ci
+npm run lint
+npx tsc --noEmit
+npx jest --ci --coverage
+```
+
+Résultat qualifié : **40 suites et 285 tests réussis**.
+
+### Performance
+
+Le test de fumée k6 réveille l’instance Render puis interroge dix fois le catalogue avec un seul utilisateur virtuel :
+
+```powershell
+npm run test:performance
+```
+
+Cette commande est exécutée depuis la racine du dépôt. Seuils du scénario :
+
+- contrôles réussis à 100 % ;
+- taux d’échec HTTP inférieur à 1 % ;
+- percentile 95 inférieur à 500 ms.
+
+Cette commande utilise l’image Docker officielle de k6 et cible l’API de démonstration.
 
 ## CI/CD
 
-Deux workflows GitHub Actions, déclenchés uniquement sur les chemins concernés :
+### Backend
 
-**`backend.yml`** — sur chaque push et pull request touchant `backend/` :
-1. Installation des dépendances (`npm ci`)
-2. Vérification du typage (`tsc --noEmit`)
-3. Exécution des tests avec couverture
-4. Sur `main` uniquement : déclenchement du déploiement Render via deploy hook
+Le workflow `.github/workflows/backend.yml` est déclenché pour les modifications du backend :
 
-**`mobile.yml`** — sur chaque push et pull request touchant `myActivities/` : lint, typage et tests.
-Le workflow peut aussi être déclenché manuellement (`workflow_dispatch`) pour lancer un build EAS
-en choisissant la plateforme et le profil.
+1. `npm ci` ;
+2. contrôle TypeScript ;
+3. tests Jest avec couverture ;
+4. sur un push vers `main`, appel du Deploy Hook Render ;
+5. construction de l’image de production ;
+6. migrations, démarrage et health check.
 
-Le déploiement du backend est décrit dans `render.yaml` ; l'image de production est construite à
-partir de `backend/Dockerfile` (multi-stage, `node:20-alpine`).
+Le hook Render est stocké dans le secret GitHub `RENDER_DEPLOY_HOOK_URL`.
 
-## Sécurité et RGPD
+### Mobile
 
-- **Mots de passe** hachés avec bcrypt, jamais stockés ni journalisés en clair
-- **Tokens JWT** à durée courte (15 min) avec rotation par refresh token (7 jours)
-- **Protection contre le bruteforce** — 5 tentatives de connexion échouées entraînent un blocage de
-  15 minutes, suivi côté Redis
-- **Limitation de débit** globale sur l'API via `express-rate-limit`
-- **En-têtes HTTP durcis** via Helmet, CORS restreint à une origine explicite
-- **Validation systématique des entrées** par schémas Zod avant tout accès aux données
-- **Géolocalisation** — donnée à caractère personnel au sens du RGPD : collectée uniquement après
-  consentement explicite de l'utilisateur, utilisée pour le seul calcul de proximité, jamais
-  historisée
-- **Suppression de compte** — statut `deleted` prévu au modèle de données pour honorer le droit à
-  l'effacement
+Le workflow `.github/workflows/mobile.yml` exécute :
+
+1. `npm ci` ;
+2. ESLint ;
+3. contrôle TypeScript ;
+4. tests Jest avec couverture ;
+5. soumission d’un build EAS Android `preview`.
+
+Le secret GitHub `EXPO_TOKEN` authentifie EAS. La commande utilise `--no-wait` : le workflow valide l’acceptation de la demande, tandis que la compilation continue sur Expo. Un binaire doit encore être terminé, installé et recetté avant sa distribution.
+
+Le job EAS est facultatif et non bloquant. En revanche, lint, TypeScript et les tests restent la porte de qualité obligatoire.
+
+Le profil EAS `production` référence encore un domaine API non qualifié. Il ne doit pas être utilisé pour une publication tant que l’URL, le binaire et les parcours de recette ne sont pas validés.
+
+## Sécurité et protection des données
+
+- mots de passe hachés avec bcrypt ;
+- access tokens courts et rotation des refresh tokens ;
+- secrets distincts et injectés par l’environnement ;
+- authentification et contrôle des rôles côté API ;
+- validation Zod des entrées ;
+- limitation globale et limitation renforcée de la connexion ;
+- tentatives d’authentification persistées dans PostgreSQL ;
+- en-têtes Helmet et politique CORS explicite ;
+- suppression de compte par anonymisation et révocation des sessions ;
+- consentement demandé avant l’usage de la géolocalisation ;
+- stockage des tokens mobiles avec `expo-secure-store` ;
+- PostgreSQL et Valkey/Redis distants non exposés comme services publics applicatifs.
+
+La géolocalisation sert au calcul de proximité et ne doit pas être historisée sans base légale et information de l’utilisateur.
+
+## Accessibilité
+
+Le projet applique notamment :
+
+- contrastes renforcés ;
+- composants et actions nommés pour les lecteurs d’écran ;
+- prise en charge de TalkBack sur Android ;
+- adaptation à l’agrandissement du texte ;
+- navigation clavier et focus visible sur le web ;
+- contrôle du back-office à 200 % de zoom ;
+- absence de dépendance aux emojis système pour les icônes fonctionnelles.
+
+Le référentiel retenu pour l’évaluation est le RGAA, complété par les pratiques WCAG applicables au mobile. Une recette VoiceOver iOS complète reste à réaliser.
+
+## Limites connues de `v0.9.0`
+
+- pas de publication Google Play ni App Store ;
+- résultat final d’un APK EAS installé non joint au dépôt public ;
+- cible iOS non recettée ;
+- back-office web non hébergé publiquement ;
+- profil EAS `production` à finaliser ;
+- notifications push non livrées ;
+- sauvegarde et restauration Render à qualifier avant une exploitation publique ;
+- modération préalable désactivée dans la configuration MVP.
+
+Ces limites sont compatibles avec un prototype de version `0.x`, mais devront être levées avant une version `1.0.0`.
+
+## Documentation de certification
+
+Le dossier de certification contient notamment :
+
+- protocoles d’intégration et de déploiement continus ;
+- critères de qualité et de performance ;
+- architecture et présentation du prototype ;
+- tests unitaires ;
+- sécurité et accessibilité ;
+- historique des versions ;
+- cahier de recettes et plan de correction des bogues ;
+- manuels de déploiement, d’utilisation et de mise à jour.
+
+Ces documents et leurs captures sont conservés dans `docs/bloc-c2/` dans l’espace de remise. Le dossier `docs/` est volontairement exclu du dépôt GitHub public afin de ne pas publier les pièces de certification et les captures de travail.
 
 ## Structure du dépôt
 
-```
+```text
 .
-├── .github/workflows/     # Intégration et déploiement continus
-├── backend/               # API REST Node.js + Express + TypeScript
+├── .github/workflows/       # CI backend et mobile
+├── backend/                 # API Express et TypeScript
 │   ├── src/
-│   │   ├── __tests__/     # Tests Jest + Supertest
-│   │   ├── config/        # Configuration typée issue des variables d'environnement
-│   │   ├── db/            # Migrations SQL, seed, client PostgreSQL
-│   │   ├── lib/           # Géocodage IGN, emails, tokens, Redis
-│   │   ├── middleware/    # Authentification, erreurs, limitation de débit
-│   │   ├── realtime/      # Passerelle Socket.IO
-│   │   ├── routes/        # Endpoints HTTP
-│   │   ├── schemas/       # Schémas de validation Zod
-│   │   ├── services/      # Logique métier
-│   │   └── types/         # Types partagés
-│   ├── database.dbml      # Modèle de données
-│   └── swagger.yaml       # Contrat d'API
-├── myActivities/          # Application React Native (Expo)
-│   └── src/
-│       ├── app/           # Écrans (routage par fichiers Expo Router)
-│       ├── components/    # Composants réutilisables
-│       ├── context/       # Contextes React (authentification…)
-│       ├── hooks/         # Hooks métier
-│       ├── lib/           # Client API, stockage des tokens
-│       └── styles/        # Feuilles de styles
-├── docker-compose.yml     # Environnement de développement local
-└── render.yaml            # Déploiement du backend
+│   │   ├── __tests__/       # Tests Jest et Supertest
+│   │   ├── config/          # Variables d’environnement typées
+│   │   ├── db/              # Migrations, seed et client PostgreSQL
+│   │   ├── lib/             # Emails, géocodage, Redis et tokens
+│   │   ├── middleware/      # Authentification, erreurs et limiteurs
+│   │   ├── realtime/        # Socket.IO
+│   │   ├── routes/          # Endpoints HTTP
+│   │   ├── schemas/         # Validation Zod
+│   │   └── services/        # Logique métier
+│   ├── database.dbml        # Modèle de données
+│   ├── Dockerfile           # Image dev et production
+│   └── swagger.yaml         # Contrat OpenAPI
+├── myActivities/            # Application Expo
+│   ├── src/
+│   │   ├── app/             # Écrans Expo Router
+│   │   ├── components/      # Composants partagés
+│   │   ├── context/         # Contextes React
+│   │   ├── hooks/           # Hooks métier
+│   │   └── lib/             # API, cartes, socket et stockage
+│   ├── app.json             # Configuration Expo
+│   └── eas.json             # Profils EAS
+├── tests/performance/       # Scénario k6
+├── docker-compose.yml       # API, PostgreSQL/PostGIS et Redis
+├── render.yaml              # Blueprint Render
+└── README.md
 ```
-
----
 
 ## Auteur
 
 **Charles Deschamps** — [@CharlesDESC](https://github.com/CharlesDESC)
 
 Projet réalisé dans le cadre du titre RNCP 39583 « Expert en Développement Logiciel ».
-

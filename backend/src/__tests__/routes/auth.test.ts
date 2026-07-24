@@ -87,6 +87,19 @@ describe('POST /v1/auth/register', () => {
 });
 
 describe('POST /v1/auth/login', () => {
+  it('returns 400 when the JSON body is malformed', async () => {
+    const res = await request(app)
+      .post('/v1/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{"pseudo":"ab"');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      code: 'INVALID_JSON',
+      message: 'Corps JSON invalide.',
+    });
+  });
+
   it('returns 400 if body is invalid', async () => {
     const res = await request(app).post('/v1/auth/login').send({ pseudo: 'ab' });
     expect(res.status).toBe(400);

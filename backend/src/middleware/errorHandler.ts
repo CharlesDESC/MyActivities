@@ -1,6 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 
+type JsonParseError = SyntaxError & {
+  status?: number;
+  type?: string;
+};
+
+function isJsonParseError(err: Error): err is JsonParseError {
+  const parseError = err as JsonParseError;
+  return err instanceof SyntaxError
+    && parseError.status === 400
+    && parseError.type === 'entity.parse.failed';
+}
+
 export class AppError extends Error {
   constructor(
     public statusCode: number,
@@ -28,6 +40,14 @@ export function errorHandler(
       code: 'VALIDATION_ERROR',
       message: 'Données invalides.',
       details: err.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
+    });
+    return;
+  }
+
+  if (isJsonParseError(err)) {
+    res.status(400).json({
+      code: 'INVALID_JSON',
+      message: 'Corps JSON invalide.',
     });
     return;
   }

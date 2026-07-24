@@ -52,6 +52,22 @@ describe('errorHandler', () => {
     );
   });
 
+  it('responds 400 for malformed JSON without exposing parser details', () => {
+    const res = mockRes();
+    const parseError = Object.assign(new SyntaxError('Unexpected end of JSON input'), {
+      status: 400,
+      type: 'entity.parse.failed',
+    });
+
+    errorHandler(parseError, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      code: 'INVALID_JSON',
+      message: 'Corps JSON invalide.',
+    });
+  });
+
   it('responds 500 for generic errors', () => {
     const res = mockRes();
     const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
