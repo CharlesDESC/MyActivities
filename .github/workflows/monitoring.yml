@@ -1,0 +1,87 @@
+name: Production monitoring
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-monitoring
+  cancel-in-progress: false
+
+jobs:
+  healthcheck:
+    name: Check production API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MONITOR_URL: https://myactivities-back.onrender.com/health
+
+    steps:
+      - name: Probe health endpoint
+        shell: bash
+        run: |
+          response_file="$(mktemp)"
+          metrics="$(curl \
+            --silent \
+            --show-error \
+            --fail \
+            --location \
+            --max-time 30 \
+            --retry 2 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            --output "$response_file" \
+            --write-out '%{http_code}|%{time_total}' \
+            "$MONITOR_URL")"
+
+          status="${metrics%%|*}"
+          duration="${metrics##*|}"
+          body="$(<"$response_file")"
+
+          echo "HTTP status: $status"
+          echo "Total duration: ${duration}s"
+          echo "Response body: $body"
+
+          test "$status" = "200"
+          grep --quiet '"status":"ok"' "$response_file"
+
+      - name: Create incident issue when the probe fails
+        if: failure()
+        uses: actions/github-script@v9
+        env:
+          INCIDENT_TITLE: "[Monitoring] API MyActivities indisponible"
+        with:
+          script: |
+            const title = process.env.INCIDENT_TITLE;
+            const { owner, repo } = context.repo;
+            const openIssues = await github.paginate(
+              github.rest.issues.listForRepo,
+              { owner, repo, state: 'open', per_page: 100 }
+            );
+            const existing = openIssues.find(
+              issue => !issue.pull_request && issue.title === title
+            );
+
+            if (!existing) {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body: [
+                  'La sonde externe de production a échoué après ses tentatives.',
+                  '',
+                  `- URL : ${process.env.MONITOR_URL}`,
+                  `- Exécution : ${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`,
+                  `- Date UTC : ${new Date().toISOString()}`,
+                  '',
+                  'Vérifier Render, les logs du backend et les dépendances PostgreSQL/Redis.'
+                ].join('\n')
+              });
+            } else {
+              core.info(`Incident déjà ouvert : #${existing.number}`);
+            }
