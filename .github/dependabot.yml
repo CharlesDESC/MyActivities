@@ -28,6 +28,14 @@ updates:
       - mobile
     commit-message:
       prefix: "chore(deps-mobile)"
+    # Expo SDK 57 cible React Native 0.86. Les changements de version mineure
+    # de React Native doivent être réalisés avec une montée de version Expo,
+    # tandis que les correctifs 0.86.x restent proposés automatiquement.
+    ignore:
+      - dependency-name: react-native
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
