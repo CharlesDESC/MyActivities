@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      MONITOR_URL: https://myactivities-back.onrender.com/health
+      MONITOR_URL: https://exemple/health
 
     steps:
       - name: Probe health endpoint
