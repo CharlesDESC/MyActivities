@@ -33,6 +33,8 @@ web-build/
 # Seul le README à la racine est versionné.
 *.md
 !/README.md
+!/CHANGELOG.md
+
 docs/
 scripts/
 
