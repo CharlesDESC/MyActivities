@@ -43,7 +43,7 @@ services:
         value: "false"
       # Base des liens dans les emails (pages /verify-email et /reset-password servies par ce backend)
       - key: APP_URL
-        value: https://myactivities-backend.onrender.com
+        value: https://myactivities-back.onrender.com
       # Fournisseur d'email : smtp (relais) ou brevo-api (API HTTP + BREVO_API_KEY)
       - key: EMAIL_PROVIDER
         value: smtp
