@@ -45,7 +45,15 @@ L’hébergement Render utilise une offre de démonstration. La première requê
 - ajout et retrait d’un créneau dans le planning personnel ;
 - avis et notation ;
 - demandes d’amis et liste de contacts ;
-- messagerie individuelle ou de groupe en temps réel.
+- messagerie individuelle ou de groupe en temps réel ;
+- propositions d’activités dans les groupes : chaque membre peut ajouter une activité
+  publiée depuis « Activités du groupe » → « Proposer une activité ». Les propositions
+  sont partagées en temps réel et conservées après réouverture. Leur auteur et les
+  administrateurs du groupe peuvent les retirer, sans réservation automatique.
+
+Cette évolution nécessite la migration `016_group_activities.sql`, appliquée par le
+mécanisme habituel de démarrage du backend. Une activité dépubliée apparaît comme
+indisponible ; une activité supprimée est retirée des propositions.
 
 ### Organisateur
 

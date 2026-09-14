@@ -9,6 +9,10 @@ prototype `0.x`.
 
 ### Ajouté
 
+- Propositions d’activités dans les conversations de groupe : ajout par tous les
+  membres, recherche par nom, consultation des fiches, retrait par l’auteur ou un
+  administrateur du groupe et actualisation en temps réel. Migration 016, contrôles
+  d’accès et unicité groupe/activité ; aucune réservation automatique.
 - Veille hebdomadaire des dépendances npm du backend et du mobile, ainsi que
   des GitHub Actions, avec Dependabot (`f687c48`).
 - Sonde externe GitHub Actions planifiée toutes les quinze minutes sur
