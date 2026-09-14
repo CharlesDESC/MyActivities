@@ -10,8 +10,48 @@ import {
 import { PaginationQuerySchema } from '../schemas/pagination';
 import * as messageService from '../services/message.service';
 import { publishRealtime, SOCKET_EVENTS } from '../realtime';
+import { z } from 'zod';
+import * as groupActivities from '../services/group-activity.service';
 
 const router = Router();
+
+const GroupParams = z.object({ conversationId: z.string().uuid() });
+const GroupActivityParams = GroupParams.extend({ activityId: z.string().uuid() });
+const ActivitySearch = PaginationQuerySchema.extend({ search: z.string().trim().max(100).default('') });
+
+router.get('/conversations/:conversationId/details', authenticate, async (req, res, next) => {
+  try {
+    const { conversationId } = GroupParams.parse(req.params);
+    res.json(await messageService.getConversation(req.user!.sub, conversationId));
+  } catch (err) { next(err); }
+});
+
+router.get('/groups/:conversationId/activities', authenticate, async (req, res, next) => {
+  try {
+    const { conversationId } = GroupParams.parse(req.params);
+    const { page, limit } = PaginationQuerySchema.parse(req.query);
+    res.json(await groupActivities.list(req.user!.sub, conversationId, page, limit));
+  } catch (err) { next(err); }
+});
+
+router.get('/groups/:conversationId/activity-search', authenticate, async (req, res, next) => {
+  try {
+    const { conversationId } = GroupParams.parse(req.params);
+    const { search, page, limit } = ActivitySearch.parse(req.query);
+    res.json(await groupActivities.search(req.user!.sub, conversationId, search, page, limit));
+  } catch (err) { next(err); }
+});
+
+for (const method of ['post', 'delete'] as const) {
+  router[method]('/groups/:conversationId/activities/:activityId', authenticate, async (req, res, next) => {
+    try {
+      const { conversationId, activityId } = GroupActivityParams.parse(req.params);
+      const recipients = await groupActivities.change(req.user!.sub, conversationId, activityId, method === 'delete');
+      await publishRealtime({ type: SOCKET_EVENTS.CONVERSATION_UPDATED, recipients, payload: { conversationId } });
+      res.status(204).send();
+    } catch (err) { next(err); }
+  });
+}
 
 // Toutes les routes de messagerie sont réservées aux utilisateurs authentifiés.
 

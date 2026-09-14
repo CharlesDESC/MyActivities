@@ -89,6 +89,25 @@ components:
   # ─────────────────────────────────────────────
   schemas:
 
+    GroupActivity:
+      type: object
+      required: [id, name, available, addedBy, addedByPseudo, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, description: 'Activité indisponible si elle est dépubliée' }
+        available: { type: boolean }
+        addedBy: { type: string, format: uuid, nullable: true }
+        addedByPseudo: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    GroupActivityChoice:
+      type: object
+      required: [id, name, address]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        address: { type: string }
+
     # ── Pagination ──────────────────────────────
     PaginationMeta:
       type: object
@@ -1065,6 +1084,105 @@ components:
 # PATHS
 # ─────────────────────────────────────────────────────────────────────────────
 paths:
+
+  /messages/conversations/{conversationId}/details:
+    get:
+      tags: [Messages]
+      summary: Consulter les détails d’une conversation dont on est membre
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Conversation et participants
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conversation' }
+        '400': { description: Identifiant invalide }
+        '401': { description: Authentification requise }
+        '404': { description: Conversation inconnue ou non accessible }
+
+  /messages/groups/{conversationId}/activities:
+    get:
+      tags: [Messages]
+      summary: Lister les propositions d’activités d’un groupe
+      description: Réservé aux membres. Les activités dépubliées sont masquées par un libellé indisponible ; les activités supprimées disparaissent.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Propositions de la plus récente à la plus ancienne
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, hasMore]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/GroupActivity' } }
+                  hasMore: { type: boolean }
+        '400': { description: Paramètres invalides }
+        '401': { description: Authentification requise }
+        '403': { description: Utilisateur extérieur au groupe ou groupe inconnu }
+        '422': { description: Conversation directe }
+
+  /messages/groups/{conversationId}/activity-search:
+    get:
+      tags: [Messages]
+      summary: Rechercher une activité publiée à proposer au groupe
+      description: Recherche par fragment de nom sans distinction de casse, sans GPS. Exclut les activités déjà proposées. Réservé aux membres du groupe.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: search, in: query, schema: { type: string, maxLength: 100, default: '' } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Activités par nom puis identifiant
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, hasMore]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/GroupActivityChoice' } }
+                  hasMore: { type: boolean }
+        '400': { description: Paramètres invalides }
+        '401': { description: Authentification requise }
+        '403': { description: Utilisateur extérieur au groupe ou groupe inconnu }
+        '422': { description: Conversation directe }
+
+  /messages/groups/{conversationId}/activities/{activityId}:
+    parameters:
+      - { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: activityId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Messages]
+      summary: Proposer une activité dans un groupe
+      description: Tout membre peut ajouter une activité publiée. Aucune réservation créée. Notifie tous les membres via conversation:updated après validation de la transaction.
+      security: [{ BearerAuth: [] }]
+      responses:
+        '204': { description: Proposition enregistrée }
+        '400': { description: Identifiant invalide }
+        '401': { description: Authentification requise }
+        '403': { description: Utilisateur extérieur au groupe ou groupe inconnu }
+        '404': { description: Activité inexistante ou non publiée }
+        '409': { description: Activité déjà proposée dans ce groupe }
+        '422': { description: Conversation directe }
+    delete:
+      tags: [Messages]
+      summary: Retirer une proposition du groupe
+      description: Réservé à son auteur encore membre ou à un administrateur du groupe. Conserve l’activité et les réservations. Notifie tous les membres via conversation:updated.
+      security: [{ BearerAuth: [] }]
+      responses:
+        '204': { description: Proposition retirée }
+        '400': { description: Identifiant invalide }
+        '401': { description: Authentification requise }
+        '403': { description: Non-membre, retrait non autorisé ou proposition absente }
+        '422': { description: Conversation directe }
 
   # ══════════════════════════════
   # AUTH

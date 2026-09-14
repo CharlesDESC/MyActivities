@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/context/auth';
 import { useChat } from '@/hooks/use-chat';
 import type { Message } from '@/types/message';
+import { GroupActivities } from '@/components/group-activities';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -79,6 +80,8 @@ export default function ChatScreen() {
             {params.peerPseudo ?? 'Conversation'}
           </ThemedText>
         </View>
+
+        {conversationId && <GroupActivities key={conversationId} conversationId={conversationId} />}
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}

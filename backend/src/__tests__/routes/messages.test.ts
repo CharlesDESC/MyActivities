@@ -7,6 +7,7 @@ jest.mock('swagger-ui-express', () => ({
 jest.mock('js-yaml', () => ({ load: () => ({}) }));
 jest.mock('fs', () => ({ ...jest.requireActual('fs'), readFileSync: () => '' }));
 jest.mock('../../services/message.service');
+jest.mock('../../services/group-activity.service');
 jest.mock('../../realtime', () => ({
   publishRealtime: jest.fn().mockResolvedValue(undefined),
   SOCKET_EVENTS: {
@@ -20,6 +21,7 @@ jest.mock('../../realtime', () => ({
 import request from 'supertest';
 import app from '../../app';
 import * as messageService from '../../services/message.service';
+import * as groupActivities from '../../services/group-activity.service';
 import { publishRealtime } from '../../realtime';
 import { generateAccessToken } from '../../lib/tokens';
 import { AppError } from '../../middleware/errorHandler';
@@ -36,6 +38,59 @@ const mockMessage = {
 };
 
 beforeEach(() => jest.clearAllMocks());
+
+describe('group activities API', () => {
+  const activities = groupActivities as jest.Mocked<typeof groupActivities>;
+  const path = `/v1/messages/groups/${CONV}/activities`;
+  it.each(['get', 'post', 'delete'] as const)('requires authentication for %s', async (method) => {
+    const result = await request(app)[method](method === 'get' ? path : `${path}/${OTHER}`);
+    expect(result.status).toBe(401);
+  });
+  it('lists proposals with pagination', async () => {
+    activities.list.mockResolvedValue({ data: [], hasMore: false });
+    const result = await request(app).get(`${path}?page=2&limit=5`).set('Authorization', `Bearer ${token}`);
+    expect(result.status).toBe(200);
+    expect(activities.list).toHaveBeenCalledWith('user-1', CONV, 2, 5);
+    expect(result.body).toEqual({ data: [], hasMore: false });
+  });
+  it('searches published choices for a member', async () => {
+    activities.search.mockResolvedValue({ data: [], hasMore: false });
+    const result = await request(app).get(`/v1/messages/groups/${CONV}/activity-search?search=bowling`).set('Authorization', `Bearer ${token}`);
+    expect(result.status).toBe(200);
+    expect(activities.search).toHaveBeenCalledWith('user-1', CONV, 'bowling', 1, 20);
+  });
+  it.each(['post', 'delete'] as const)('notifies every member after %s', async (method) => {
+    activities.change.mockResolvedValue(['user-1', OTHER]);
+    const result = await request(app)[method](`${path}/${OTHER}`).set('Authorization', `Bearer ${token}`);
+    expect(result.status).toBe(204);
+    expect(activities.change).toHaveBeenCalledWith('user-1', CONV, OTHER, method === 'delete');
+    expect(publishRealtime).toHaveBeenCalledWith({ type: 'conversation:updated', recipients: ['user-1', OTHER], payload: { conversationId: CONV } });
+  });
+  it.each([403, 404, 409, 422])('propagates a service error %s without notifying', async (statusCode) => {
+    activities.change.mockRejectedValue(new AppError(statusCode, 'Refus', 'REFUSED'));
+    const result = await request(app).post(`${path}/${OTHER}`).set('Authorization', `Bearer ${token}`);
+    expect(result.status).toBe(statusCode);
+    expect(publishRealtime).not.toHaveBeenCalled();
+  });
+  it('rejects invalid activity ids before querying the database', async () => {
+    const result = await request(app).post(`${path}/invalid`).set('Authorization', `Bearer ${token}`);
+    expect(result.status).toBe(400);
+    expect(activities.change).not.toHaveBeenCalled();
+  });
+  it('rejects invalid group ids and pagination', async () => {
+    for (const url of ['/v1/messages/groups/invalid/activities', `${path}?page=0`, `/v1/messages/groups/${CONV}/activity-search?limit=0`]) {
+      expect((await request(app).get(url).set('Authorization', `Bearer ${token}`)).status).toBe(400);
+    }
+    expect(activities.list).not.toHaveBeenCalled();
+    expect(activities.search).not.toHaveBeenCalled();
+  });
+  it('returns conversation details for the current user', async () => {
+    mock.getConversation.mockResolvedValue({ id: CONV, type: 'group' } as any);
+    const result = await request(app).get(`/v1/messages/conversations/${CONV}/details`).set('Authorization', `Bearer ${token}`);
+    expect(result.status).toBe(200);
+    expect(mock.getConversation).toHaveBeenCalledWith('user-1', CONV);
+  });
+});
 
 describe('GET /v1/messages/conversations', () => {
   it('returns 401 without auth', async () => {

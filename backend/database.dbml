@@ -309,6 +309,18 @@ Table conversations {
 
 // Participation d'un utilisateur à une conversation. `last_read_at` porte le
 // décompte des messages non lus (unifié direct + groupe).
+Table conversation_activities {
+  conversation_id uuid [not null, ref: > conversations.id, note: 'Suppression en cascade ; groupes uniquement via API']
+  activity_id uuid [not null, ref: > activities.id, note: 'Suppression en cascade']
+  added_by uuid [null, ref: > users.id, note: 'Auteur de la proposition ; SET NULL si suppression physique']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (conversation_id, activity_id) [pk]
+    activity_id [name: 'idx_conversation_activities_activity']
+  }
+}
+
 Table conversation_participants {
   conversation_id  uuid        [not null, ref: > conversations.id]
   user_id          uuid        [not null, ref: > users.id]
