@@ -331,7 +331,7 @@ export default function ActivityDetailScreen() {
                                     disabled={full}
                                     onPress={() => setSelectedSlotId(slot.id)}
                                     accessibilityRole="button"
-                                    accessibilityLabel={`Créneau ${formatTime(slot.startsAt)}, ${full ? 'complet' : `${slot.remaining} place${slot.remaining > 1 ? 's' : ''}`}`}
+                                    accessibilityLabel={`Créneau ${(slot.allDay ? 'Toute la journée' : formatTime(slot.startsAt))}, ${full ? 'complet' : `${slot.remaining} place${slot.remaining > 1 ? 's' : ''}`}`}
                                     accessibilityState={{ disabled: full, selected }}
                                     style={[
                                       styles.slotChip,
@@ -343,7 +343,7 @@ export default function ActivityDetailScreen() {
                                     <ThemedText
                                       type="smallBold"
                                       style={{ color: selected ? theme.background : theme.text }}>
-                                      {formatTime(slot.startsAt)}
+                                      {(slot.allDay ? 'Toute la journée' : formatTime(slot.startsAt))}
                                     </ThemedText>
                                     <ThemedText
                                       type="small"

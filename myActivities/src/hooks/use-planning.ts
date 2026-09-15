@@ -5,7 +5,7 @@ import type { ActivityCategory } from '@/types/activity';
 import type { PlanningEntry } from '@/types/planning';
 
 type RawEntry = {
-  id: string; scheduledAt: string; reminderOffset: number | null; createdAt: string;
+  id: string; scheduledAt: string; allDay?: boolean; reminderOffset: number | null; createdAt: string;
   activity: {
     id: string; name: string; category: string; address: string;
     coverImage: string | null; avgRating: number | null;
@@ -16,7 +16,7 @@ type RawEntry = {
 
 function mapEntry(r: RawEntry): PlanningEntry {
   return {
-    id: r.id, scheduledAt: r.scheduledAt,
+    id: r.id, scheduledAt: r.scheduledAt, allDay: r.allDay ?? false,
     reminderOffsetMinutes: r.reminderOffset, createdAt: r.createdAt,
     activity: {
       id: r.activity.id, name: r.activity.name,

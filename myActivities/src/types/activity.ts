@@ -31,7 +31,7 @@ export type ActivityFormInput = {
   priceMax: number;
   accessibility?: { pmr: boolean; stroller: boolean };
   websiteUrl?: string | null;
-  initialSlot?: { startsAt: string; capacity: number };
+  initialSlot?: { startsAt: string; capacity: number; allDay?: boolean; endsAt?: string };
 };
 
 export type ActivitySummary = {
@@ -85,6 +85,7 @@ export const ACTIVITY_STATUS_CONFIG: Record<ActivityStatus, { label: string; col
 export type ActivitySlot = {
   id: string;
   startsAt: string;
+  allDay?: boolean;
   endsAt: string | null;
   capacity: number;
   booked: number;

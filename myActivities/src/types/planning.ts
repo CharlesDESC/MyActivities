@@ -17,6 +17,7 @@ export type PlanningActivity = {
 export type PlanningEntry = {
   id: string;
   scheduledAt: string;
+  allDay?: boolean;
   reminderOffsetMinutes: number | null;
   createdAt: string;
   activity: PlanningActivity;

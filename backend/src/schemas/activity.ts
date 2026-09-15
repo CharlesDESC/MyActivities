@@ -15,7 +15,11 @@ const initialSlotSchema = z.object({
     { message: 'La date de l’événement doit être dans le futur' },
   ),
   capacity: z.number().int().min(1).max(10000),
-});
+  allDay: z.boolean().optional(),
+  endsAt: z.string().datetime().optional(),
+}).refine((slot) => !slot.allDay || (!!slot.endsAt
+  && [23, 24, 25].includes((Date.parse(slot.endsAt) - Date.parse(slot.startsAt)) / 3600000)),
+  { message: 'Une journée entière doit avoir une fin au début du lendemain', path: ['endsAt'] });
 
 export const ListActivitiesSchema = PaginationQuerySchema.extend({
   lat: z.coerce.number().min(-90).max(90),

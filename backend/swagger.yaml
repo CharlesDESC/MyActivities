@@ -418,6 +418,25 @@ components:
       description: L'adresse et la position proviennent automatiquement de l'établissement du compte.
       required: [name, category, description, priceMin, priceMax]
       properties:
+        initialSlot:
+          type: object
+          required: [startsAt, capacity]
+          properties:
+            startsAt:
+              type: string
+              format: date-time
+              description: Début dans le futur ; minuit local pour une journée entière.
+            endsAt:
+              type: string
+              format: date-time
+              description: Obligatoire si allDay est vrai, au début du lendemain local.
+            allDay:
+              type: boolean
+              default: false
+            capacity:
+              type: integer
+              minimum: 1
+              maximum: 10000
         name:
           type: string
           minLength: 3
@@ -594,6 +613,8 @@ components:
     PlanningEntry:
       type: object
       properties:
+        allDay:
+          type: boolean
         id:
           type: string
           format: uuid
@@ -948,6 +969,8 @@ components:
       type: object
       description: Un créneau avec ses réservations.
       properties:
+        allDay:
+          type: boolean
         id:
           type: string
           format: uuid

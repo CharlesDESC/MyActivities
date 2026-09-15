@@ -85,6 +85,7 @@ export interface ReservationAttendee {
 export interface ReservationSlot {
   id: string;
   startsAt: Date;
+  allDay?: boolean;
   endsAt: Date | null;
   capacity: number;
   booked: number;

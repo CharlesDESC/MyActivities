@@ -7,6 +7,7 @@ export type SlotWithAvailability = {
   activityId: string;
   startsAt: string;
   endsAt: string | null;
+  allDay?: boolean;
   capacity: number;
   booked: number;
   remaining: number;
@@ -29,7 +30,7 @@ export async function listSlots(
   const { rows } = await pool.query<SlotWithAvailability>(
     `SELECT
        s.id, s.activity_id AS "activityId",
-       s.starts_at AS "startsAt", s.ends_at AS "endsAt", s.capacity,
+       s.starts_at AS "startsAt", s.ends_at AS "endsAt", s.all_day AS "allDay", s.capacity,
        COUNT(pe.id)::int AS booked,
        (s.capacity - COUNT(pe.id))::int AS remaining
      FROM activity_slots s
@@ -63,9 +64,9 @@ export async function createSlots(
     const { rows } = await pool.query<SlotWithAvailability>(
       `INSERT INTO activity_slots (activity_id, starts_at, ends_at, capacity)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (activity_id, starts_at) DO UPDATE SET capacity = EXCLUDED.capacity, ends_at = EXCLUDED.ends_at
+       ON CONFLICT (activity_id, starts_at) DO UPDATE SET capacity = EXCLUDED.capacity, ends_at = EXCLUDED.ends_at, all_day = false
        RETURNING id, activity_id AS "activityId", starts_at AS "startsAt",
-                 ends_at AS "endsAt", capacity, 0 AS booked, capacity AS remaining`,
+                 ends_at AS "endsAt", all_day AS "allDay", capacity, 0 AS booked, capacity AS remaining`,
       [activityId, slot.startsAt, slot.endsAt ?? null, slot.capacity],
     );
     created.push(rows[0]);

@@ -33,7 +33,7 @@ export function PlanningCard({ entry, onRemove }: Props) {
       <View style={[styles.dateStrip, { backgroundColor: cfg.color + '22' }]}>
         <ThemedText style={[styles.dateDay, { color: theme.text }]}>{day}</ThemedText>
         <ThemedText style={[styles.dateMonth, { color: theme.text }]}>{month}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary" style={styles.dateTime}>{time}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.dateTime}>{entry.allDay ? 'Toute la journée' : time}</ThemedText>
       </View>
 
       {/* Info */}

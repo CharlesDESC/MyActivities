@@ -26,7 +26,7 @@ function SlotCard({ slot }: { slot: ReservationSlot }) {
       <View style={styles.slotHeader}>
         <Icon name="event" size={20} themeColor="textSecondary" />
         <ThemedText type="smallBold" style={styles.slotTitle} numberOfLines={1}>
-          {formatSlot(slot.startsAt)}
+          {slot.allDay ? `${new Date(slot.startsAt).toLocaleDateString('fr-FR')} · Toute la journée` : formatSlot(slot.startsAt)}
         </ThemedText>
         <View style={styles.countBadge}>
           <Icon name="people" size={14} themeColor="textSecondary" />
