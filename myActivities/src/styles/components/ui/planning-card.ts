@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
   },
   dateDay: { fontSize: 24, fontWeight: '700' },
   dateMonth: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase' },
-  dateTime: { fontSize: 11 },
+  dateTime: { fontSize: 11, textAlign: 'center' },
 
   info: {
     flex: 1,

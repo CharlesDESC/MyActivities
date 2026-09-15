@@ -69,6 +69,7 @@ const VALUES: ActivityFormState = {
   websiteUrl: '',
   eventDate: '2099-08-15',
   eventTime: '10:30',
+  allDay: false,
   capacity: '20',
   pmr: false,
   stroller: true,

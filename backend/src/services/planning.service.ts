@@ -6,6 +6,7 @@ import { PlanningEntryRow, PlanningEntry, PaginatedResult } from '../types';
 const PLANNING_ENTRY_SELECT = `
   SELECT
     pe.id, pe.scheduled_at AS "scheduledAt",
+    COALESCE(s.all_day, false) AS "allDay",
     pe.reminder_offset_minutes AS "reminderOffset", pe.created_at AS "createdAt",
     json_build_object(
       'id', a.id, 'name', a.name, 'category', a.category, 'address', a.address,
@@ -15,6 +16,7 @@ const PLANNING_ENTRY_SELECT = `
     ) AS activity
   FROM planning_entries pe
   JOIN activities a ON a.id = pe.activity_id
+  LEFT JOIN activity_slots s ON s.id = pe.slot_id
 `;
 
 export async function getPlanning(

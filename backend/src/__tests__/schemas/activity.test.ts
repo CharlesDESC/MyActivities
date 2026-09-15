@@ -67,3 +67,15 @@ describe('UpdateActivitySchema', () => {
     expect(() => UpdateActivitySchema.parse({ priceMin: 20, priceMax: 5 })).toThrow();
   });
 });
+
+describe('all-day initial slots', () => {
+  const slot = { startsAt: '2099-08-15T22:00:00.000Z', allDay: true, capacity: 20 };
+  it.each([23, 24, 25])('accepts a %i-hour day including DST transitions', (hours) => {
+    const endsAt = new Date(Date.parse(slot.startsAt) + hours * 3600000).toISOString();
+    expect(CreateActivitySchema.parse({ ...validCreate, initialSlot: { ...slot, endsAt } }).initialSlot?.allDay).toBe(true);
+  });
+  it.each([undefined, '2099-08-15T23:00:00.000Z', '2099-08-14T22:00:00.000Z'])(
+    'rejects a missing or invalid day end (%s)', (endsAt) => {
+      expect(CreateActivitySchema.safeParse({ ...validCreate, initialSlot: { ...slot, endsAt } }).success).toBe(false);
+    });
+});

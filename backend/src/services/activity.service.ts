@@ -173,9 +173,9 @@ export async function createActivity(
     // aucune activité incomplète ne subsiste si son créneau est invalide.
     if (data.initialSlot) {
       await client.query(
-        `INSERT INTO activity_slots (activity_id, starts_at, capacity)
-         VALUES ($1, $2, $3)`,
-        [activityId, data.initialSlot.startsAt, data.initialSlot.capacity],
+        `INSERT INTO activity_slots (activity_id, starts_at, capacity, ends_at, all_day)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [activityId, data.initialSlot.startsAt, data.initialSlot.capacity, data.initialSlot.endsAt ?? null, data.initialSlot.allDay ?? false],
       );
     }
 
@@ -313,7 +313,7 @@ export async function getActivityReservations(
 
   const { rows } = await pool.query<ReservationSlot>(
     `SELECT
-       s.id, s.starts_at AS "startsAt", s.ends_at AS "endsAt", s.capacity,
+       s.id, s.starts_at AS "startsAt", s.ends_at AS "endsAt", s.all_day AS "allDay", s.capacity,
        COUNT(pe.id)::int AS booked,
        (s.capacity - COUNT(pe.id))::int AS remaining,
        COALESCE(

@@ -14,6 +14,7 @@ export type ActivityFormState = {
   websiteUrl: string;
   eventDate: string;
   eventTime: string;
+  allDay: boolean;
   capacity: string;
   pmr: boolean;
   stroller: boolean;
@@ -46,7 +47,7 @@ function errorsFromApi(error: ApiError): FormErrors {
 
 const EMPTY: ActivityFormState = {
   name: '', category: 'autre', description: '', priceMin: '', priceMax: '',
-  websiteUrl: '', eventDate: '', eventTime: '', capacity: '20', pmr: false, stroller: false,
+  websiteUrl: '', eventDate: '', eventTime: '', allDay: false, capacity: '20', pmr: false, stroller: false,
 };
 
 function fromActivity(a: ActivityDetail): ActivityFormState {
@@ -59,6 +60,7 @@ function fromActivity(a: ActivityDetail): ActivityFormState {
     websiteUrl: a.websiteUrl ?? '',
     eventDate: '',
     eventTime: '',
+    allDay: false,
     capacity: '20',
     pmr: a.accessibilityPmr,
     stroller: a.accessibilityStroller,
@@ -97,14 +99,14 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
     if (!next.priceMin && !next.priceMax && min > max) next.priceMin = 'Le prix min doit être ≤ au prix max';
 
     if (!activityId) {
-      const startsAt = combineLocalDateAndTime(values.eventDate, values.eventTime);
+      const startsAt = combineLocalDateAndTime(values.eventDate, values.allDay ? '00:00' : values.eventTime);
       const capacity = Number(values.capacity);
       if (!values.eventDate) next.eventDate = 'Choisis la date de l’événement';
-      if (!values.eventTime) next.eventTime = 'Choisis une heure';
+      if (!values.allDay && !values.eventTime) next.eventTime = 'Choisis une heure';
       if (startsAt && new Date(startsAt).getTime() <= Date.now()) {
         next.eventDate = 'Le créneau doit être dans le futur';
       }
-      if (!startsAt && values.eventDate && values.eventTime) {
+      if (!startsAt && values.eventDate && (values.allDay || values.eventTime)) {
         next.eventDate = 'Date ou heure invalide';
       }
       if (!Number.isInteger(capacity) || capacity < 1 || capacity > 10000) {
@@ -121,8 +123,10 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
     setIsSubmitting(true);
     setErrors((prev) => ({ ...prev, global: undefined }));
     const startsAt = !activityId
-      ? combineLocalDateAndTime(values.eventDate, values.eventTime)
+      ? combineLocalDateAndTime(values.eventDate, values.allDay ? '00:00' : values.eventTime)
       : null;
+    const endsAt = startsAt && values.allDay ? new Date(startsAt) : null;
+    if (endsAt) endsAt.setDate(endsAt.getDate() + 1);
     const payload = {
       name: values.name.trim(),
       category: values.category,
@@ -132,7 +136,8 @@ export function useActivityForm(options: { activityId?: string; initial?: Activi
       accessibility: { pmr: values.pmr, stroller: values.stroller },
       websiteUrl: values.websiteUrl.trim() || null,
       ...(!activityId && startsAt
-        ? { initialSlot: { startsAt, capacity: Number(values.capacity) } }
+        ? { initialSlot: { startsAt, capacity: Number(values.capacity),
+            ...(values.allDay ? { allDay: true, endsAt: endsAt!.toISOString() } : {}), } }
         : {}),
     };
     try {

@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -207,9 +207,14 @@ export function ActivityFormView({
                         {errors.eventDate}
                       </ThemedText>
                     )}
+                    <View style={styles.rowFields}>
+                      <ThemedText type="smallBold">Toute la journée</ThemedText>
+                      <Switch accessibilityLabel="Toute la journée" value={values.allDay}
+                        onValueChange={(value) => setField('allDay', value)} />
+                    </View>
                     {!!values.eventDate && (
                       <View style={styles.scheduleFields}>
-                        <View style={styles.scheduleField}>
+                        {!values.allDay && <View style={styles.scheduleField}>
                           <ThemedText type="smallBold">Heure</ThemedText>
                           <TimePicker
                             value={values.eventTime || null}
@@ -224,7 +229,7 @@ export function ActivityFormView({
                               {errors.eventTime}
                             </ThemedText>
                           )}
-                        </View>
+                        </View>}
                         <Input
                           label="Nombre de places"
                           placeholder="20"

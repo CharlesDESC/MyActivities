@@ -182,7 +182,7 @@ describe('activity.service — createActivity', () => {
 
   it('creates the initial event slot in the activity transaction', async () => {
     const detail = { ...mockActivity, id: 'act-new', photos: [] };
-    const initialSlot = { startsAt: '2099-08-15T08:30:00.000Z', capacity: 20 };
+    const initialSlot = { startsAt: '2099-08-15T00:00:00.000Z', endsAt: '2099-08-16T00:00:00.000Z', allDay: true, capacity: 20 };
     const mockClient = {
       query: jest.fn()
         .mockResolvedValueOnce({ rows: [] })
@@ -199,7 +199,7 @@ describe('activity.service — createActivity', () => {
     await activityService.createActivity('org-1', { ...data, initialSlot });
 
     expect(mockClient.query.mock.calls[2][0]).toContain('INSERT INTO activity_slots');
-    expect(mockClient.query.mock.calls[2][1]).toEqual(['act-new', initialSlot.startsAt, 20]);
+    expect(mockClient.query.mock.calls[2][1]).toEqual(['act-new', initialSlot.startsAt, 20, initialSlot.endsAt, true]);
     expect(mockClient.query.mock.calls[3][0]).toBe('COMMIT');
   });
 

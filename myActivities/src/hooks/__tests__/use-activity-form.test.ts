@@ -47,6 +47,7 @@ const VALID: ActivityFormState = {
   websiteUrl: '',
   eventDate: '2099-08-15',
   eventTime: '10:30',
+  allDay: false,
   capacity: '20',
   pmr: true,
   stroller: false,
@@ -315,5 +316,28 @@ describe('useActivityForm — suppression', () => {
     expect(caught).toBe(failure);
     expect(result.current.errors.global).toBe('Accès refusé. (code : FORBIDDEN)');
     expect(result.current.isDeleting).toBe(false);
+  });
+});
+
+describe('all-day activities', () => {
+  it('submits a full local day without an hour', async () => {
+    const { result } = await renderHook(() => useActivityForm());
+    await fillForm(result, { allDay: true, eventTime: '' });
+    await act(async () => { await result.current.submit(); });
+    expect(mockPost).toHaveBeenCalledWith('/activities', expect.objectContaining({
+      initialSlot: {
+        startsAt: combineLocalDateAndTime(VALID.eventDate, '00:00'),
+        endsAt: combineLocalDateAndTime('2099-08-16', '00:00'),
+        allDay: true, capacity: 20,
+      },
+    }));
+  });
+  it('requires the hour again when all-day is disabled', async () => {
+    const { result } = await renderHook(() => useActivityForm());
+    await fillForm(result, { allDay: true, eventTime: '' });
+    await act(async () => { result.current.setField('allDay', false); });
+    await act(async () => { await result.current.submit(); });
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(result.current.errors.eventTime).toBeTruthy();
   });
 });
